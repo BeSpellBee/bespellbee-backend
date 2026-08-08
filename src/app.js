@@ -4,13 +4,20 @@ require('dotenv').config();
 
 // Import routes
 const authRoutes = require('./routes/auth');
+const analyticsRoutes = require('./routes/analytics');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
+// ===== MIDDLEWARE =====
+// Enable CORS for all origins (you can restrict this later)
 app.use(cors());
+// Parse JSON request bodies
 app.use(express.json());
+// Parse URL-encoded request bodies
+app.use(express.urlencoded({ extended: true }));
+
+// ===== ROUTES =====
 
 // Health check route
 app.get('/api/health', (req, res) => {
@@ -21,14 +28,29 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Test route
+// Root test route
 app.get('/', (req, res) => {
   res.send('BeSpellBee API is running');
 });
 
 // ===== AUTHENTICATION ROUTES =====
+// POST /api/auth/register-teacher
+// POST /api/auth/login
 app.use('/api/auth', authRoutes);
 
+// ===== ANALYTICS ROUTES =====
+// POST /api/analytics/track/lesson-view
+// POST /api/analytics/track/file-open
+// POST /api/analytics/track/quiz-submit
+// POST /api/analytics/track/activity
+// GET  /api/analytics/teacher/students
+// GET  /api/analytics/teacher/student/:studentId
+// GET  /api/analytics/admin/analytics
+app.use('/api/analytics', analyticsRoutes);
+
+// ===== START SERVER =====
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
+  console.log(`📍 http://localhost:${PORT}`);
+  console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
 });
