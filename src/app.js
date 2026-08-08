@@ -1,18 +1,15 @@
-// Main Express Application
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 
-// Create Express app
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// ===== MIDDLEWARE =====
+// Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-// ===== ROUTES =====
+// Health check route
 app.get('/api/health', (req, res) => {
   res.status(200).json({
     success: true,
@@ -21,9 +18,11 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// ===== START SERVER =====
+// Test route
+app.get('/', (req, res) => {
+  res.send('BeSpellBee API is running');
+});
+
 app.listen(PORT, () => {
-  console.log(`✅ Server is running on port ${PORT}`);
-  console.log(`📍 http://localhost:${PORT}`);
-  console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
+  console.log(`✅ Server running on port ${PORT}`);
 });
