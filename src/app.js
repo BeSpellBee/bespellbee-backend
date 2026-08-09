@@ -43,14 +43,28 @@ app.post('/api/bookings', async (req, res) => {
             message
         });
 
-        // TODO: Save to your database or send an email alert here
+        // Insert booking into your Aiven PostgreSQL database
+        // Adjust column names if they differ slightly in your table schema
+        const insertQuery = `
+            INSERT INTO bookings (student_name, student_email, student_phone, teacher_name, time_slot, message)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            RETURNING *;
+        `;
+        
+        const values = [studentName, studentEmail, studentPhone, teacherName, timeSlot, message];
+        
+        // Execute query (using your database pool variable, e.g., pool or db)
+        const result = await pool.query(insertQuery, values);
+
+        console.log('✅ Booking successfully saved to Aiven DB:', result.rows[0]);
 
         return res.status(201).json({
             success: true,
-            message: 'Booking created successfully!'
+            message: 'Booking created successfully!',
+            booking: result.rows[0]
         });
     } catch (error) {
-        console.error('Error saving booking:', error);
+        console.error('Error saving booking to database:', error);
         return res.status(500).json({ success: false, message: 'Server error creating booking' });
     }
 });
