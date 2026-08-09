@@ -60,18 +60,28 @@ app.post('/api/bookings', async (req, res) => {
       });
     }
 
-    console.log('📚 New Booking Received:');
+    // ===== SAVE TO DATABASE =====
+    const Booking = require('./models/Booking');
+    const booking = await Booking.create({
+      studentName,
+      studentEmail,
+      studentPhone: studentPhone || null,
+      teacherName,
+      timeSlot,
+      message: message || null
+    });
+
+    console.log('📚 New Booking Saved to Database:');
     console.log(`👤 Student: ${studentName} (${studentEmail})`);
     console.log(`👩‍🏫 Teacher: ${teacherName}`);
     console.log(`🕐 Time: ${timeSlot}`);
-    console.log(`📝 Notes: ${message || 'None'}`);
-
-    // TODO: Send email notification (you can integrate nodemailer or another service)
+    console.log(`🆔 Booking ID: ${booking.id}`);
 
     return res.status(201).json({
       success: true,
       message: 'Booking created successfully',
       data: {
+        id: booking.id,
         student: studentName,
         email: studentEmail,
         teacher: teacherName,
