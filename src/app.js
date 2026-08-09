@@ -12,6 +12,7 @@ const PORT = process.env.PORT || 5000;
 // ===== MIDDLEWARE =====
 // Restrict CORS to your deployed GitHub frontend domain
 // ===== MIDDLEWARE =====
+// ===== MIDDLEWARE =====
 app.use(cors({
   origin: [
     'https://bespellbee.github.io',                  // Base domain
