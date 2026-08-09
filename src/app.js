@@ -10,8 +10,15 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // ===== MIDDLEWARE =====
-// Enable CORS for all origins (you can restrict this later)
-app.use(cors());
+// Restrict CORS to your deployed GitHub frontend domain
+app.use(cors({
+  origin: [
+    'https://bespellbee.github.io/BeSpellBee', // Your GitHub Pages frontend
+    'http://localhost:3000'                      // Keep for local frontend testing
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  credentials: true
+}));
 // Parse JSON request bodies
 app.use(express.json());
 // Parse URL-encoded request bodies
