@@ -48,7 +48,7 @@ app.use('/api/auth', authRoutes);
 // ===== ANALYTICS ROUTES =====
 app.use('/api/analytics', analyticsRoutes);
 
-// ===== BOOKING ROUTE (POST) =====
+// ===== BOOKING ROUTE =====
 app.post('/api/bookings', async (req, res) => {
   try {
     const { studentName, studentEmail, studentPhone, teacherName, timeSlot, message } = req.body;
@@ -66,7 +66,7 @@ app.post('/api/bookings', async (req, res) => {
     console.log(`🕐 Time: ${timeSlot}`);
     console.log(`📝 Notes: ${message || 'None'}`);
 
-    // Try to save to database
+    // ===== SAVE TO DATABASE =====
     try {
       const { Booking } = require('./models');
       const booking = await Booking.create({
@@ -125,7 +125,7 @@ app.get('/api/bookings', async (req, res) => {
 });
 
 // ===== START SERVER =====
-const { sequelize } = require('./models');
+const { sequelize } = require('./config/database');
 
 app.listen(PORT, async () => {
   try {
