@@ -11,10 +11,14 @@ const PORT = process.env.PORT || 5000;
 
 // ===== MIDDLEWARE =====
 // Restrict CORS to your deployed GitHub frontend domain
+// ===== MIDDLEWARE =====
 app.use(cors({
   origin: [
-    'https://bespellbee.github.io/BeSpellBee', // Your GitHub Pages frontend
-    'http://localhost:3000'                      // Keep for local frontend testing
+    'https://bespellbee.github.io',                  // Base domain
+    'https://bespellbee.github.io/BeSpellBee',       // Specific path
+    'https://bespellbee.github.io/BeSpellBee/',      // With trailing slash
+    'http://localhost:3000',                          // React local dev
+    'http://localhost:5173'                          // Vite local dev (if applicable)
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true
