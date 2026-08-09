@@ -125,7 +125,7 @@ app.get('/api/bookings', async (req, res) => {
 });
 
 // ===== START SERVER =====
-const { sequelize } = require('./src/config/database');
+const { sequelize } = require('./config/database');
 
 app.listen(PORT, async () => {
   try {
