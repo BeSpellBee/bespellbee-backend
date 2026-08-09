@@ -48,7 +48,7 @@ app.use('/api/auth', authRoutes);
 // ===== ANALYTICS ROUTES =====
 app.use('/api/analytics', analyticsRoutes);
 
-// ===== BOOKING ROUTE =====
+// ===== BOOKING ROUTE (POST) =====
 app.post('/api/bookings', async (req, res) => {
   try {
     const { studentName, studentEmail, studentPhone, teacherName, timeSlot, message } = req.body;
@@ -66,7 +66,21 @@ app.post('/api/bookings', async (req, res) => {
     console.log(`🕐 Time: ${timeSlot}`);
     console.log(`📝 Notes: ${message || 'None'}`);
 
-    // TODO: Send email notification (you can integrate nodemailer or another service)
+    // Try to save to database
+    try {
+      const { Booking } = require('./models');
+      const booking = await Booking.create({
+        studentName,
+        studentEmail,
+        studentPhone: studentPhone || null,
+        teacherName,
+        timeSlot,
+        message: message || null
+      });
+      console.log(`✅ Booking saved to database (ID: ${booking.id})`);
+    } catch (dbError) {
+      console.error('❌ Database save failed:', dbError.message);
+    }
 
     return res.status(201).json({
       success: true,
@@ -88,8 +102,40 @@ app.post('/api/bookings', async (req, res) => {
   }
 });
 
+// ===== GET ALL BOOKINGS =====
+app.get('/api/bookings', async (req, res) => {
+  try {
+    const { Booking } = require('./models');
+    const bookings = await Booking.findAll({
+      order: [['createdAt', 'DESC']]
+    });
+    
+    res.status(200).json({
+      success: true,
+      count: bookings.length,
+      data: bookings
+    });
+  } catch (error) {
+    console.error('Error fetching bookings:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching bookings'
+    });
+  }
+});
+
 // ===== START SERVER =====
-app.listen(PORT, () => {
+const { sequelize } = require('./models');
+
+app.listen(PORT, async () => {
+  try {
+    await sequelize.authenticate();
+    console.log('✅ Database connected');
+    await sequelize.sync({ alter: true });
+    console.log('✅ Database synced');
+  } catch (error) {
+    console.error('❌ Database error:', error);
+  }
   console.log(`✅ Server running on port ${PORT}`);
   console.log(`📍 http://localhost:${PORT}`);
   console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
