@@ -29,6 +29,32 @@ app.use(express.json());
 // Parse URL-encoded request bodies
 app.use(express.urlencoded({ extended: true }));
 
+// ===== BOOKING ROUTE =====
+app.post('/api/bookings', async (req, res) => {
+    try {
+        const { studentName, studentEmail, studentPhone, teacherName, timeSlot, message } = req.body;
+
+        console.log('📥 New Booking Received:', {
+            studentName,
+            studentEmail,
+            studentPhone,
+            teacherName,
+            timeSlot,
+            message
+        });
+
+        // TODO: Save to your database or send an email alert here
+
+        return res.status(201).json({
+            success: true,
+            message: 'Booking created successfully!'
+        });
+    } catch (error) {
+        console.error('Error saving booking:', error);
+        return res.status(500).json({ success: false, message: 'Server error creating booking' });
+    }
+});
+
 // ===== ROUTES =====
 
 // Health check route
