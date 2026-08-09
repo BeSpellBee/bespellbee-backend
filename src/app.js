@@ -31,53 +31,52 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // ===== BOOKING ROUTE =====
-
 app.post('/api/bookings', async (req, res) => {
-
     try {
-
         const { studentName, studentEmail, studentPhone, teacherName, timeSlot, message } = req.body;
 
-
-
         console.log('📥 New Booking Received:', {
-
             studentName,
-
             studentEmail,
-
             studentPhone,
-
             teacherName,
-
             timeSlot,
-
             message
-
         });
 
+        // Insert into Aiven PostgreSQL using Sequelize
+        try {
+            const insertQuery = `
+                INSERT INTO bookings (student_name, student_email, student_phone, teacher_name, time_slot, message, "createdAt", "updatedAt")
+                VALUES (:studentName, :studentEmail, :studentPhone, :teacherName, :timeSlot, :message, NOW(), NOW())
+                RETURNING *;
+            `;
 
+            const [result] = await sequelize.query(insertQuery, {
+                replacements: {
+                    studentName,
+                    studentEmail,
+                    studentPhone,
+                    teacherName,
+                    timeSlot,
+                    message
+                }
+            });
 
-        // TODO: Save to your database or send an email alert here
-
-
+            console.log('✅ Booking successfully saved to Aiven DB:', result[0]);
+        } catch (dbError) {
+            console.error('⚠️ DB Insert Error:', dbError.message);
+        }
 
         return res.status(201).json({
-
             success: true,
-
             message: 'Booking created successfully!'
-
         });
 
     } catch (error) {
-
-        console.error('Error saving booking:', error);
-
-        return res.status(500).json({ success: false, message: 'Server error creating booking' });
-
+        console.error('Error handling booking request:', error);
+        return res.status(500).json({ success: false, message: 'Server error processing request' });
     }
-
 });
 
 
