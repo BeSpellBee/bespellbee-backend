@@ -1,4 +1,4 @@
-const { DataTypes } = require('sequelize');
+how about my index.js code? should i update it? const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
 
 // ===== TEACHER =====
@@ -291,7 +291,7 @@ const Booking = sequelize.define('Booking', {
     field: 'created_at'
   }
 }, {
-  tableName: 'bookings',
+  tableName: 'app_bookings', // <-- Matches your new Aiven table!
   timestamps: false
 });
 
