@@ -5,7 +5,7 @@ require('dotenv').config();
 // Import routes
 const authRoutes = require('./routes/auth');
 const analyticsRoutes = require('./routes/analytics');
-const trackingRoutes = require('./routes/tracking');
+
 
 // ===== CREATE THE APP FIRST =====
 const app = express();
