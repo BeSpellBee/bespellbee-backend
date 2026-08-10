@@ -48,6 +48,10 @@ app.use('/api/auth', authRoutes);
 // ===== ANALYTICS ROUTES =====
 app.use('/api/analytics', analyticsRoutes);
 
+// ===== TRACKING ROUTES =====
+const trackingRoutes = require('./routes/tracking');
+app.use('/api/track', trackingRoutes);
+
 // ===== BOOKING ROUTE =====
 app.post('/api/bookings', async (req, res) => {
   try {
