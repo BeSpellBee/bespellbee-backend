@@ -1,4 +1,4 @@
-how about my index.js code? should i update it? const { DataTypes } = require('sequelize');
+const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
 
 // ===== TEACHER =====
