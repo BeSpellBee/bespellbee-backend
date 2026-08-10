@@ -40,8 +40,8 @@ const Booking = sequelize.define('Booking', {
     field: 'created_at'
   }
 }, {
-  tableName: 'bookings',
+  tableName: 'app_bookings', // Matches your new Aiven table!
   timestamps: false
 });
 
-module.exports = Booking;
+module.exports = { Booking }; // Curly braces are in place!
