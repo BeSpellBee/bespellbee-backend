@@ -11,22 +11,9 @@ const {
   Student,
   Lesson,
   Teacher,
-  Booking,
-  StudentActivity,
-  StudentSession,
-  Message,
-  VideoProgress
+  Booking
 } = require('../models');
 const { authenticate } = require('../middleware/auth');
-const { sequelize } = require('../config/database');
-
-// ============================================================
-// HELPER FUNCTIONS
-// ============================================================
-
-function generateSessionId() {
-  return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-}
 
 // ============================================================
 // LESSON VIEW TRACKING
@@ -76,30 +63,16 @@ router.post('/lesson-view', authenticate, async (req, res) => {
       });
     }
 
+    // Update lesson total views
     await Lesson.increment('views', { where: { id: lessonId } });
 
+    // Update student total time spent
     if (watchTime) {
       await Student.increment('totalTimeSpent', {
         by: watchTime,
         where: { id: studentId }
       });
     }
-
-    // Log activity
-    await StudentActivity.create({
-      studentId,
-      activityType: 'lesson_view',
-      activityData: {
-        lessonId,
-        watchTime: watchTime || 0,
-        isCompleted: isCompleted || false,
-        completionPercentage: completionPercentage || 0
-      },
-      sessionId: req.headers['x-session-id'] || req.sessionID,
-      ipAddress: req.ip,
-      userAgent: req.headers['user-agent'],
-      duration: watchTime || 0
-    });
 
     return res.status(201).json({
       success: true,
@@ -142,27 +115,11 @@ router.post('/video', authenticate, async (req, res) => {
       timestamp: new Date()
     });
 
+    // Also update lesson view
     await LessonView.update(
       { totalWatchTime: watchTime || 0 },
       { where: { studentId, lessonId } }
     );
-
-    // Log activity
-    await StudentActivity.create({
-      studentId,
-      activityType: 'video_watch',
-      activityData: {
-        lessonId,
-        watchTime: watchTime || 0,
-        totalDuration: totalDuration || 0,
-        watchPercentage: watchPercentage || 0,
-        isCompleted: isCompleted || false
-      },
-      sessionId: req.headers['x-session-id'] || req.sessionID,
-      ipAddress: req.ip,
-      userAgent: req.headers['user-agent'],
-      duration: watchTime || 0
-    });
 
     return res.status(201).json({
       success: true,
@@ -175,108 +132,6 @@ router.post('/video', authenticate, async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Server error tracking video'
-    });
-  }
-});
-
-// ============================================================
-// VIDEO PROGRESS (Enhanced)
-// ============================================================
-
-router.post('/video-progress', authenticate, async (req, res) => {
-  try {
-    const { 
-      videoId, 
-      videoTitle, 
-      action, 
-      currentTime, 
-      duration, 
-      progress 
-    } = req.body;
-    const studentId = req.user.id;
-
-    // Log video activity
-    await StudentActivity.create({
-      studentId,
-      activityType: 'video_interaction',
-      activityData: {
-        videoId,
-        videoTitle: videoTitle || 'Untitled',
-        action,
-        currentTime,
-        duration,
-        progress,
-        timestamp: new Date().toISOString()
-      },
-      pageUrl: req.headers.referer,
-      ipAddress: req.ip,
-      userAgent: req.headers['user-agent'],
-      sessionId: req.headers['x-session-id'] || req.sessionID
-    });
-
-    // Update or create video progress
-    if (['pause', 'ended', 'seeked'].includes(action) || progress !== undefined) {
-      const [videoProgress, created] = await VideoProgress.findOrCreate({
-        where: { studentId, videoId },
-        defaults: {
-          videoTitle: videoTitle || 'Untitled',
-          watchedDuration: currentTime || 0,
-          totalDuration: duration || 0,
-          completionPercentage: progress || 0,
-          lastPosition: currentTime || 0,
-          completed: progress >= 100,
-          startedAt: new Date(),
-          updatedAt: new Date()
-        }
-      });
-
-      if (!created) {
-        const newWatchedDuration = Math.max(videoProgress.watchedDuration || 0, currentTime || 0);
-        const newCompletion = Math.min(progress || 0, 100);
-        
-        await videoProgress.update({
-          watchedDuration: newWatchedDuration,
-          totalDuration: duration || videoProgress.totalDuration,
-          completionPercentage: newCompletion,
-          lastPosition: currentTime || 0,
-          completed: newCompletion >= 100,
-          completedAt: newCompletion >= 100 ? new Date() : null,
-          updatedAt: new Date()
-        });
-      }
-
-      if (progress >= 100) {
-        await StudentActivity.create({
-          studentId,
-          activityType: 'video_completed',
-          activityData: {
-            videoId,
-            videoTitle: videoTitle || 'Untitled',
-            duration: duration || 0,
-            timestamp: new Date().toISOString()
-          },
-          ipAddress: req.ip,
-          userAgent: req.headers['user-agent'],
-          sessionId: req.headers['x-session-id'] || req.sessionID
-        });
-
-        await Student.increment('engagementScore', {
-          by: 2,
-          where: { id: studentId }
-        });
-      }
-    }
-
-    return res.status(201).json({
-      success: true,
-      message: 'Video progress tracked'
-    });
-
-  } catch (error) {
-    console.error('Video progress tracking error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Server error tracking video progress'
     });
   }
 });
@@ -306,19 +161,6 @@ router.post('/file', authenticate, async (req, res) => {
       timestamp: new Date()
     });
 
-    await StudentActivity.create({
-      studentId,
-      activityType: 'file_' + action,
-      activityData: {
-        fileName,
-        fileType: fileType || 'unknown',
-        lessonId: lessonId || null
-      },
-      sessionId: req.headers['x-session-id'] || req.sessionID,
-      ipAddress: req.ip,
-      userAgent: req.headers['user-agent']
-    });
-
     return res.status(201).json({
       success: true,
       message: 'File action tracked',
@@ -335,94 +177,7 @@ router.post('/file', authenticate, async (req, res) => {
 });
 
 // ============================================================
-// QUIZ ATTEMPT TRACKING (Enhanced)
-// ============================================================
-
-router.post('/quiz-attempt', authenticate, async (req, res) => {
-  try {
-    const { 
-      quizId, 
-      quizTitle, 
-      answers, 
-      score, 
-      totalQuestions, 
-      timeTaken,
-      isPassed 
-    } = req.body;
-    const studentId = req.user.id;
-
-    if (!quizId || !answers) {
-      return res.status(400).json({
-        success: false,
-        message: 'quizId and answers are required'
-      });
-    }
-
-    const correctAnswers = answers.filter(a => a.isCorrect).length;
-    const wrongAnswers = totalQuestions - correctAnswers;
-
-    const quizAttempt = await QuizAttempt.create({
-      studentId,
-      quizId,
-      quizTitle: quizTitle || 'Untitled Quiz',
-      answers,
-      score: score || 0,
-      totalQuestions: totalQuestions || 0,
-      correctAnswers,
-      wrongAnswers,
-      timeTaken: timeTaken || 0,
-      isPassed: isPassed || false,
-      attemptDate: new Date()
-    });
-
-    await StudentActivity.create({
-      studentId,
-      activityType: 'quiz_attempt',
-      activityData: {
-        quizId,
-        quizTitle: quizTitle || 'Untitled Quiz',
-        score: score || 0,
-        totalQuestions: totalQuestions || 0,
-        correctAnswers,
-        wrongAnswers,
-        timeTaken: timeTaken || 0,
-        isPassed: isPassed || false,
-        timestamp: new Date().toISOString()
-      },
-      ipAddress: req.ip,
-      userAgent: req.headers['user-agent'],
-      sessionId: req.headers['x-session-id'] || req.sessionID,
-      duration: timeTaken || 0
-    });
-
-    await Student.increment('engagementScore', {
-      by: 3,
-      where: { id: studentId }
-    });
-
-    return res.status(201).json({
-      success: true,
-      message: 'Quiz attempt tracked',
-      data: {
-        attemptId: quizAttempt.id,
-        correct: correctAnswers,
-        total: totalQuestions,
-        score: score || 0,
-        passed: isPassed || false
-      }
-    });
-
-  } catch (error) {
-    console.error('Quiz attempt tracking error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Server error tracking quiz attempt'
-    });
-  }
-});
-
-// ============================================================
-// QUIZ TRACKING (Legacy - keep for compatibility)
+// QUIZ ATTEMPT TRACKING
 // ============================================================
 
 router.post('/quiz', authenticate, async (req, res) => {
@@ -451,6 +206,7 @@ router.post('/quiz', authenticate, async (req, res) => {
       attemptDate: new Date()
     });
 
+    // Update student engagement score
     if (score > 0) {
       await Student.increment('engagementScore', {
         by: 1,
@@ -497,19 +253,6 @@ router.post('/message', authenticate, async (req, res) => {
       timestamp: new Date()
     });
 
-    await StudentActivity.create({
-      studentId,
-      activityType: 'message_sent',
-      activityData: {
-        teacherId,
-        messageLength: message.length,
-        preview: message.substring(0, 50)
-      },
-      sessionId: req.headers['x-session-id'] || req.sessionID,
-      ipAddress: req.ip,
-      userAgent: req.headers['user-agent']
-    });
-
     return res.status(201).json({
       success: true,
       message: 'Message tracked',
@@ -521,131 +264,6 @@ router.post('/message', authenticate, async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Server error tracking message'
-    });
-  }
-});
-
-// ============================================================
-// SEND MESSAGE (Enhanced)
-// ============================================================
-
-router.post('/send-message', authenticate, async (req, res) => {
-  try {
-    const { teacherId, content } = req.body;
-    const studentId = req.user.id;
-
-    if (!teacherId || !content) {
-      return res.status(400).json({
-        success: false,
-        message: 'teacherId and content are required'
-      });
-    }
-
-    const message = await Message.create({
-      studentId,
-      teacherId,
-      content,
-      isRead: false,
-      createdAt: new Date()
-    });
-
-    await StudentActivity.create({
-      studentId,
-      activityType: 'message_sent',
-      activityData: {
-        teacherId,
-        contentLength: content.length,
-        preview: content.substring(0, 50),
-        timestamp: new Date().toISOString()
-      },
-      ipAddress: req.ip,
-      userAgent: req.headers['user-agent'],
-      sessionId: req.headers['x-session-id'] || req.sessionID
-    });
-
-    await Student.increment('engagementScore', {
-      by: 0.5,
-      where: { id: studentId }
-    });
-
-    return res.status(201).json({
-      success: true,
-      message: 'Message sent',
-      data: message
-    });
-
-  } catch (error) {
-    console.error('Send message error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Server error sending message'
-    });
-  }
-});
-
-// ============================================================
-// GET MESSAGES
-// ============================================================
-
-router.get('/messages', authenticate, async (req, res) => {
-  try {
-    const studentId = req.user.id;
-
-    const messages = await Message.findAll({
-      where: { studentId },
-      order: [['createdAt', 'DESC']],
-      limit: 50
-    });
-
-    return res.status(200).json({
-      success: true,
-      data: messages
-    });
-
-  } catch (error) {
-    console.error('Get messages error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Server error fetching messages'
-    });
-  }
-});
-
-// ============================================================
-// MARK MESSAGE AS READ
-// ============================================================
-
-router.put('/message/:id/read', authenticate, async (req, res) => {
-  try {
-    const messageId = req.params.id;
-    const studentId = req.user.id;
-
-    const message = await Message.findOne({
-      where: { id: messageId, studentId }
-    });
-
-    if (!message) {
-      return res.status(404).json({
-        success: false,
-        message: 'Message not found'
-      });
-    }
-
-    await message.update({
-      isRead: true,
-      readAt: new Date()
-    });
-
-    return res.status(200).json({
-      success: true,
-      message: 'Message marked as read'
-    });
-
-  } catch (error) {
-    console.error('Mark message read error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Server error marking message as read'
     });
   }
 });
@@ -673,20 +291,6 @@ router.post('/link-click', authenticate, async (req, res) => {
       linkText: linkText || null,
       linkType: linkType || 'external',
       timestamp: new Date()
-    });
-
-    await StudentActivity.create({
-      studentId,
-      activityType: 'link_click',
-      activityData: {
-        url,
-        linkText: linkText || null,
-        linkType: linkType || 'external',
-        lessonId: lessonId || null
-      },
-      sessionId: req.headers['x-session-id'] || req.sessionID,
-      ipAddress: req.ip,
-      userAgent: req.headers['user-agent']
     });
 
     return res.status(201).json({
@@ -751,31 +355,18 @@ router.post('/session', authenticate, async (req, res) => {
 });
 
 // ============================================================
-// PAGE VIEW TRACKING
+// PAGE VIEW TRACKING (Simple version)
 // ============================================================
 
 router.post('/page-view', authenticate, async (req, res) => {
   try {
-    const { page, url, duration, from, to } = req.body;
+    const { page, url, duration, action } = req.body;
     const studentId = req.user.id;
 
-    const activity = await StudentActivity.create({
-      studentId,
-      activityType: 'page_view',
-      activityData: {
-        page: page || 'unknown',
-        url: url || req.headers.referer || 'unknown',
-        from: from || null,
-        to: to || null,
-        timestamp: new Date().toISOString()
-      },
-      pageUrl: url || req.headers.referer,
-      ipAddress: req.ip,
-      userAgent: req.headers['user-agent'],
-      sessionId: req.headers['x-session-id'] || req.sessionID,
-      duration: duration || 0
-    });
+    // Just log it - we'll store in a simple way
+    console.log(`📊 Page View: Student ${studentId} viewed ${page || 'unknown'}`);
 
+    // Update engagement score
     await Student.increment('engagementScore', {
       by: 0.1,
       where: { id: studentId }
@@ -783,8 +374,7 @@ router.post('/page-view', authenticate, async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: 'Page view tracked',
-      data: activity
+      message: 'Page view tracked'
     });
 
   } catch (error) {
@@ -797,120 +387,59 @@ router.post('/page-view', authenticate, async (req, res) => {
 });
 
 // ============================================================
-// GET STUDENT DASHBOARD
+// DASHBOARD (Simple version)
 // ============================================================
 
 router.get('/dashboard', authenticate, async (req, res) => {
   try {
     const studentId = req.user.id;
 
+    // Get student info
     const student = await Student.findByPk(studentId, {
-      attributes: ['id', 'name', 'email', 'engagementScore', 'totalTimeSpent', 'createdAt']
+      attributes: ['id', 'name', 'email', 'engagementScore', 'totalTimeSpent']
     });
 
-    const [
-      activities,
-      videoProgress,
-      quizAttempts,
-      messages,
-      sessions
-    ] = await Promise.all([
-      StudentActivity.findAll({
-        where: { studentId },
-        order: [['createdAt', 'DESC']],
-        limit: 50
-      }),
-      VideoProgress.findAll({
-        where: { studentId },
-        order: [['updatedAt', 'DESC']]
-      }),
-      QuizAttempt.findAll({
-        where: { studentId },
-        order: [['attemptDate', 'DESC']],
-        limit: 20
-      }),
-      Message.findAll({
-        where: { studentId },
-        order: [['createdAt', 'DESC']],
-        limit: 20
-      }),
-      StudentSession.findAll({
-        where: { studentId },
-        order: [['loginTime', 'DESC']],
-        limit: 10
-      })
-    ]);
+    // Get quiz attempts
+    const quizAttempts = await QuizAttempt.findAll({
+      where: { studentId },
+      order: [['attemptDate', 'DESC']],
+      limit: 20
+    });
 
-    const totalVideos = videoProgress.length;
-    const completedVideos = videoProgress.filter(v => v.completed).length;
+    // Get messages
+    const messages = await MessageTracking.findAll({
+      where: { studentId },
+      order: [['timestamp', 'DESC']],
+      limit: 20
+    });
+
+    // Calculate stats
     const totalQuizzes = quizAttempts.length;
     const avgScore = totalQuizzes > 0 
       ? quizAttempts.reduce((sum, q) => sum + parseFloat(q.score || 0), 0) / totalQuizzes 
       : 0;
     const totalMessages = messages.length;
-    const unreadMessages = messages.filter(m => !m.isRead).length;
-    const totalSessions = sessions.length;
-    const totalTimeSpent = sessions.reduce((sum, s) => sum + (s.sessionDuration || 0), 0);
-
-    const activityTypes = await StudentActivity.findAll({
-      where: { studentId },
-      attributes: [
-        'activityType',
-        [sequelize.fn('COUNT', sequelize.col('id')), 'count']
-      ],
-      group: ['activityType']
-    });
-
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-    const dailyActivity = await StudentActivity.findAll({
-      where: {
-        studentId,
-        createdAt: {
-          [sequelize.Op.gte]: sevenDaysAgo
-        }
-      },
-      attributes: [
-        [sequelize.fn('DATE', sequelize.col('created_at')), 'date'],
-        [sequelize.fn('COUNT', sequelize.col('id')), 'count']
-      ],
-      group: [sequelize.fn('DATE', sequelize.col('created_at'))],
-      order: [[sequelize.fn('DATE', sequelize.col('created_at')), 'ASC']]
-    });
 
     return res.status(200).json({
       success: true,
       data: {
         student: {
           ...student.toJSON(),
-          totalTimeSpent: totalTimeSpent || student.totalTimeSpent
+          totalTimeSpent: student.totalTimeSpent || 0
         },
         stats: {
-          totalVideos,
-          completedVideos,
-          completionRate: totalVideos > 0 ? (completedVideos / totalVideos) * 100 : 0,
+          completedVideos: 0,
           totalQuizzes,
           avgScore: Math.round(avgScore * 100) / 100,
           totalMessages,
-          unreadMessages,
-          totalSessions,
-          totalTimeSpent
+          unreadMessages: messages.filter(m => !m.isRead).length,
+          totalSessions: 0,
+          totalTimeSpent: student.totalTimeSpent || 0
         },
         recentActivity: {
-          activities: activities.slice(0, 10),
-          videos: videoProgress.slice(0, 5),
           quizzes: quizAttempts.slice(0, 5),
           messages: messages.slice(0, 5)
-        },
-        activityTypes: activityTypes.map(a => ({
-          type: a.activityType,
-          count: parseInt(a.dataValues.count)
-        })),
-        dailyActivity: dailyActivity.map(d => ({
-          date: d.dataValues.date,
-          count: parseInt(d.dataValues.count)
-        }))
+        }
       }
     });
 
@@ -918,161 +447,7 @@ router.get('/dashboard', authenticate, async (req, res) => {
     console.error('Dashboard error:', error);
     return res.status(500).json({
       success: false,
-      message: 'Server error fetching dashboard data'
-    });
-  }
-});
-
-// ============================================================
-// STUDENT SUMMARY (Legacy - keep for compatibility)
-// ============================================================
-
-router.get('/student/:studentId/summary', authenticate, async (req, res) => {
-  try {
-    const { studentId } = req.params;
-
-    const student = await Student.findByPk(studentId, {
-      attributes: ['id', 'name', 'email', 'engagementScore', 'totalTimeSpent']
-    });
-
-    if (!student) {
-      return res.status(404).json({
-        success: false,
-        message: 'Student not found'
-      });
-    }
-
-    const [lessons, videos, files, quizzes, messages, links, sessions] = await Promise.all([
-      LessonView.findAll({ where: { studentId } }),
-      VideoTracking.findAll({ where: { studentId } }),
-      FileTracking.findAll({ where: { studentId } }),
-      QuizAttempt.findAll({ where: { studentId } }),
-      MessageTracking.findAll({ where: { studentId } }),
-      LinkClick.findAll({ where: { studentId } }),
-      SessionTracking.findAll({ where: { studentId } })
-    ]);
-
-    const totalLessonsViewed = lessons.length;
-    const completedLessons = lessons.filter(l => l.isCompleted).length;
-    const totalVideosWatched = videos.length;
-    const totalFilesOpened = files.length;
-    const totalQuizzesTaken = quizzes.length;
-    const avgQuizScore = quizzes.length > 0
-      ? (quizzes.reduce((sum, q) => sum + parseFloat(q.score || 0), 0) / quizzes.length)
-      : 0;
-    const totalMessages = messages.length;
-    const totalLinksClicked = links.length;
-    const totalSessions = sessions.length;
-    const totalTimeSpent = sessions.reduce((sum, s) => sum + s.sessionDuration, 0);
-
-    return res.status(200).json({
-      success: true,
-      data: {
-        student,
-        summary: {
-          totalLessonsViewed,
-          completedLessons,
-          completionRate: totalLessonsViewed > 0 
-            ? (completedLessons / totalLessonsViewed) * 100 
-            : 0,
-          totalVideosWatched,
-          totalFilesOpened,
-          totalQuizzesTaken,
-          avgQuizScore,
-          totalMessages,
-          totalLinksClicked,
-          totalSessions,
-          totalTimeSpent
-        },
-        recentActivity: {
-          lessons: lessons.slice(-5),
-          quizzes: quizzes.slice(-5),
-          messages: messages.slice(-5)
-        }
-      }
-    });
-
-  } catch (error) {
-    console.error('Student summary error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Server error fetching student summary'
-    });
-  }
-});
-
-// ============================================================
-// PLATFORM ANALYTICS (Admin)
-// ============================================================
-
-router.get('/admin/platform', authenticate, async (req, res) => {
-  try {
-    const [
-      totalStudents,
-      totalTeachers,
-      totalLessons,
-      totalBookings,
-      totalLessonViews,
-      totalQuizzes,
-      totalSessions
-    ] = await Promise.all([
-      Student.count(),
-      Teacher.count(),
-      Lesson.count(),
-      Booking.count(),
-      LessonView.count(),
-      QuizAttempt.count(),
-      SessionTracking.count()
-    ]);
-
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-    const activeStudents = await SessionTracking.findAll({
-      attributes: [
-        [sequelize.fn('DATE', sequelize.col('sessionStart')), 'date'],
-        [sequelize.fn('COUNT', sequelize.literal('DISTINCT "studentId"')), 'count']
-      ],
-      where: {
-        sessionStart: {
-          [sequelize.Op.gte]: sevenDaysAgo
-        }
-      },
-      group: [sequelize.fn('DATE', sequelize.col('sessionStart'))],
-      order: [[sequelize.fn('DATE', sequelize.col('sessionStart')), 'ASC']]
-    });
-
-    const popularLessons = await Lesson.findAll({
-      attributes: ['id', 'title', 'views'],
-      order: [['views', 'DESC']],
-      limit: 5
-    });
-
-    return res.status(200).json({
-      success: true,
-      data: {
-        totals: {
-          students: totalStudents,
-          teachers: totalTeachers,
-          lessons: totalLessons,
-          bookings: totalBookings,
-          lessonViews: totalLessonViews,
-          quizzes: totalQuizzes,
-          sessions: totalSessions
-        },
-        activeStudents: {
-          daily: activeStudents,
-          totalActive: activeStudents.length
-        },
-        popularLessons
-      }
-    });
-
-  } catch (error) {
-    console.error('Platform analytics error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Server error fetching platform analytics'
+      message: 'Server error fetching dashboard'
     });
   }
 });
