@@ -2,10 +2,9 @@ const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
 
 // ============================================================
-// EXISTING MODELS (Preserved)
+// TEACHER MODEL
 // ============================================================
 
-// Teacher model
 const Teacher = sequelize.define('Teacher', {
   id: {
     type: DataTypes.INTEGER,
@@ -43,7 +42,10 @@ const Teacher = sequelize.define('Teacher', {
   timestamps: false
 });
 
-// Student model
+// ============================================================
+// STUDENT MODEL
+// ============================================================
+
 const Student = sequelize.define('Student', {
   id: {
     type: DataTypes.INTEGER,
@@ -95,7 +97,10 @@ const Student = sequelize.define('Student', {
   timestamps: false
 });
 
-// Lesson model
+// ============================================================
+// LESSON MODEL
+// ============================================================
+
 const Lesson = sequelize.define('Lesson', {
   id: {
     type: DataTypes.INTEGER,
@@ -123,7 +128,10 @@ const Lesson = sequelize.define('Lesson', {
   timestamps: false
 });
 
-// Quiz model
+// ============================================================
+// QUIZ MODEL
+// ============================================================
+
 const Quiz = sequelize.define('Quiz', {
   id: {
     type: DataTypes.INTEGER,
@@ -151,7 +159,10 @@ const Quiz = sequelize.define('Quiz', {
   timestamps: false
 });
 
-// Booking model
+// ============================================================
+// BOOKING MODEL
+// ============================================================
+
 const Booking = sequelize.define('Booking', {
   id: {
     type: DataTypes.INTEGER,
@@ -209,7 +220,7 @@ const Booking = sequelize.define('Booking', {
 });
 
 // ============================================================
-// TRACKING MODELS (Enhanced)
+// TRACKING MODELS
 // ============================================================
 
 // Lesson View Tracking
@@ -585,234 +596,6 @@ const SessionTracking = sequelize.define('SessionTracking', {
 });
 
 // ============================================================
-// NEW TRACKING MODELS
-// ============================================================
-
-// Student Activity Log (Detailed tracking)
-const StudentActivity = sequelize.define('StudentActivity', {
-  id: {
-    type: DataTypes.INTEGER,
-    primaryKey: true,
-    autoIncrement: true
-  },
-  studentId: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    field: 'student_id',
-    references: {
-      model: 'students',
-      key: 'id'
-    }
-  },
-  activityType: {
-    type: DataTypes.STRING(50),
-    allowNull: false,
-    field: 'activity_type'
-  },
-  activityData: {
-    type: DataTypes.JSONB,
-    defaultValue: {}
-  },
-  pageUrl: {
-    type: DataTypes.TEXT,
-    field: 'page_url'
-  },
-  ipAddress: {
-    type: DataTypes.STRING(45),
-    field: 'ip_address'
-  },
-  userAgent: {
-    type: DataTypes.TEXT,
-    field: 'user_agent'
-  },
-  sessionId: {
-    type: DataTypes.STRING(255),
-    field: 'session_id'
-  },
-  duration: {
-    type: DataTypes.INTEGER,
-    defaultValue: 0
-  },
-  createdAt: {
-    type: DataTypes.DATE,
-    defaultValue: DataTypes.NOW,
-    field: 'created_at'
-  }
-}, {
-  tableName: 'student_activities',
-  timestamps: false
-});
-
-// Student Sessions
-const StudentSession = sequelize.define('StudentSession', {
-  id: {
-    type: DataTypes.INTEGER,
-    primaryKey: true,
-    autoIncrement: true
-  },
-  studentId: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    field: 'student_id',
-    references: {
-      model: 'students',
-      key: 'id'
-    }
-  },
-  sessionToken: {
-    type: DataTypes.STRING(255),
-    allowNull: false,
-    unique: true,
-    field: 'session_token'
-  },
-  ipAddress: {
-    type: DataTypes.STRING(45),
-    field: 'ip_address'
-  },
-  userAgent: {
-    type: DataTypes.TEXT,
-    field: 'user_agent'
-  },
-  loginTime: {
-    type: DataTypes.DATE,
-    defaultValue: DataTypes.NOW,
-    field: 'login_time'
-  },
-  logoutTime: {
-    type: DataTypes.DATE,
-    field: 'logout_time'
-  },
-  sessionDuration: {
-    type: DataTypes.INTEGER,
-    field: 'session_duration'
-  },
-  isActive: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: true,
-    field: 'is_active'
-  }
-}, {
-  tableName: 'student_sessions',
-  timestamps: false
-});
-
-// Messages Table
-const Message = sequelize.define('Message', {
-  id: {
-    type: DataTypes.INTEGER,
-    primaryKey: true,
-    autoIncrement: true
-  },
-  studentId: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    field: 'student_id',
-    references: {
-      model: 'students',
-      key: 'id'
-    }
-  },
-  teacherId: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    field: 'teacher_id',
-    references: {
-      model: 'teachers',
-      key: 'id'
-    }
-  },
-  content: {
-    type: DataTypes.TEXT,
-    allowNull: false
-  },
-  isRead: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: false,
-    field: 'is_read'
-  },
-  readAt: {
-    type: DataTypes.DATE,
-    field: 'read_at'
-  },
-  createdAt: {
-    type: DataTypes.DATE,
-    defaultValue: DataTypes.NOW,
-    field: 'created_at'
-  }
-}, {
-  tableName: 'messages',
-  timestamps: false
-});
-
-// Video Progress (Enhanced)
-const VideoProgress = sequelize.define('VideoProgress', {
-  id: {
-    type: DataTypes.INTEGER,
-    primaryKey: true,
-    autoIncrement: true
-  },
-  studentId: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    field: 'student_id',
-    references: {
-      model: 'students',
-      key: 'id'
-    }
-  },
-  videoId: {
-    type: DataTypes.STRING(100),
-    allowNull: false,
-    field: 'video_id'
-  },
-  videoTitle: {
-    type: DataTypes.STRING(255),
-    field: 'video_title'
-  },
-  watchedDuration: {
-    type: DataTypes.INTEGER,
-    defaultValue: 0,
-    field: 'watched_duration'
-  },
-  totalDuration: {
-    type: DataTypes.INTEGER,
-    defaultValue: 0,
-    field: 'total_duration'
-  },
-  completionPercentage: {
-    type: DataTypes.DECIMAL(5, 2),
-    defaultValue: 0,
-    field: 'completion_percentage'
-  },
-  lastPosition: {
-    type: DataTypes.INTEGER,
-    defaultValue: 0,
-    field: 'last_position'
-  },
-  completed: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: false
-  },
-  startedAt: {
-    type: DataTypes.DATE,
-    defaultValue: DataTypes.NOW,
-    field: 'started_at'
-  },
-  completedAt: {
-    type: DataTypes.DATE,
-    field: 'completed_at'
-  },
-  updatedAt: {
-    type: DataTypes.DATE,
-    defaultValue: DataTypes.NOW,
-    field: 'updated_at'
-  }
-}, {
-  tableName: 'video_progress',
-  timestamps: false
-});
-
-// ============================================================
 // EXPORT ALL MODELS
 // ============================================================
 
@@ -828,9 +611,5 @@ module.exports = {
   QuizAttempt,
   MessageTracking,
   LinkClick,
-  SessionTracking,
-  StudentActivity,
-  StudentSession,
-  Message,
-  VideoProgress
+  SessionTracking
 };
