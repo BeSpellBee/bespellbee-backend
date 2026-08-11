@@ -611,5 +611,6 @@ module.exports = {
   QuizAttempt,
   MessageTracking,
   LinkClick,
-  SessionTracking
+  SessionTracking,
+  StudentActivity
 };
