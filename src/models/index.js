@@ -140,12 +140,8 @@ const Quiz = sequelize.define('Quiz', {
   },
   lessonId: {
     type: DataTypes.INTEGER,
-    allowNull: true, // ✅ Made nullable
-    field: 'lesson_id',
-    references: {
-      model: 'lessons',
-      key: 'id'
-    }
+    allowNull: true,
+    field: 'lesson_id'
   },
   question: {
     type: DataTypes.TEXT,
@@ -173,20 +169,12 @@ const Activity = sequelize.define('Activity', {
   studentId: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    field: 'student_id',
-    references: {
-      model: 'students',
-      key: 'id'
-    }
+    field: 'student_id'
   },
   lessonId: {
     type: DataTypes.INTEGER,
-    allowNull: true, // ✅ FIXED: Was causing errors on general page views
-    field: 'lesson_id',
-    references: {
-      model: 'lessons',
-      key: 'id'
-    }
+    allowNull: true,
+    field: 'lesson_id'
   },
   actionType: {
     type: DataTypes.STRING(50),
@@ -274,7 +262,6 @@ const Booking = sequelize.define('Booking', {
 // TRACKING MODELS
 // ============================================================
 
-// Lesson View Tracking
 const LessonView = sequelize.define('LessonView', {
   id: {
     type: DataTypes.INTEGER,
@@ -284,20 +271,12 @@ const LessonView = sequelize.define('LessonView', {
   studentId: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    field: 'student_id',
-    references: {
-      model: 'students',
-      key: 'id'
-    }
+    field: 'student_id'
   },
   lessonId: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    field: 'lesson_id',
-    references: {
-      model: 'lessons',
-      key: 'id'
-    }
+    field: 'lesson_id'
   },
   viewCount: {
     type: DataTypes.INTEGER,
@@ -336,7 +315,6 @@ const LessonView = sequelize.define('LessonView', {
   timestamps: false
 });
 
-// Video Tracking
 const VideoTracking = sequelize.define('VideoTracking', {
   id: {
     type: DataTypes.INTEGER,
@@ -346,20 +324,12 @@ const VideoTracking = sequelize.define('VideoTracking', {
   studentId: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    field: 'student_id',
-    references: {
-      model: 'students',
-      key: 'id'
-    }
+    field: 'student_id'
   },
   lessonId: {
     type: DataTypes.INTEGER,
-    allowNull: true, // ✅ FIXED: Allow tracking without strict lesson ID if needed
-    field: 'lesson_id',
-    references: {
-      model: 'lessons',
-      key: 'id'
-    }
+    allowNull: true,
+    field: 'lesson_id'
   },
   watchTime: {
     type: DataTypes.INTEGER,
@@ -390,7 +360,6 @@ const VideoTracking = sequelize.define('VideoTracking', {
   timestamps: false
 });
 
-// File Tracking
 const FileTracking = sequelize.define('FileTracking', {
   id: {
     type: DataTypes.INTEGER,
@@ -400,20 +369,12 @@ const FileTracking = sequelize.define('FileTracking', {
   studentId: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    field: 'student_id',
-    references: {
-      model: 'students',
-      key: 'id'
-    }
+    field: 'student_id'
   },
   lessonId: {
     type: DataTypes.INTEGER,
-    allowNull: true, // ✅ FIXED
-    field: 'lesson_id',
-    references: {
-      model: 'lessons',
-      key: 'id'
-    }
+    allowNull: true,
+    field: 'lesson_id'
   },
   fileName: {
     type: DataTypes.STRING(255),
@@ -438,7 +399,6 @@ const FileTracking = sequelize.define('FileTracking', {
   timestamps: false
 });
 
-// Quiz Attempt Tracking
 const QuizAttempt = sequelize.define('QuizAttempt', {
   id: {
     type: DataTypes.INTEGER,
@@ -448,11 +408,7 @@ const QuizAttempt = sequelize.define('QuizAttempt', {
   studentId: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    field: 'student_id',
-    references: {
-      model: 'students',
-      key: 'id'
-    }
+    field: 'student_id'
   },
   quizId: {
     type: DataTypes.STRING(100),
@@ -506,7 +462,6 @@ const QuizAttempt = sequelize.define('QuizAttempt', {
   timestamps: false
 });
 
-// Message Tracking
 const MessageTracking = sequelize.define('MessageTracking', {
   id: {
     type: DataTypes.INTEGER,
@@ -516,20 +471,12 @@ const MessageTracking = sequelize.define('MessageTracking', {
   studentId: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    field: 'student_id',
-    references: {
-      model: 'students',
-      key: 'id'
-    }
+    field: 'student_id'
   },
   teacherId: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    field: 'teacher_id',
-    references: {
-      model: 'teachers',
-      key: 'id'
-    }
+    field: 'teacher_id'
   },
   message: {
     type: DataTypes.TEXT,
@@ -549,7 +496,6 @@ const MessageTracking = sequelize.define('MessageTracking', {
   timestamps: false
 });
 
-// Link Click Tracking
 const LinkClick = sequelize.define('LinkClick', {
   id: {
     type: DataTypes.INTEGER,
@@ -559,20 +505,12 @@ const LinkClick = sequelize.define('LinkClick', {
   studentId: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    field: 'student_id',
-    references: {
-      model: 'students',
-      key: 'id'
-    }
+    field: 'student_id'
   },
   lessonId: {
     type: DataTypes.INTEGER,
-    allowNull: true, // ✅ FIXED
-    field: 'lesson_id',
-    references: {
-      model: 'lessons',
-      key: 'id'
-    }
+    allowNull: true,
+    field: 'lesson_id'
   },
   url: {
     type: DataTypes.TEXT,
@@ -596,7 +534,6 @@ const LinkClick = sequelize.define('LinkClick', {
   timestamps: false
 });
 
-// Session Tracking
 const SessionTracking = sequelize.define('SessionTracking', {
   id: {
     type: DataTypes.INTEGER,
@@ -606,11 +543,7 @@ const SessionTracking = sequelize.define('SessionTracking', {
   studentId: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    field: 'student_id',
-    references: {
-      model: 'students',
-      key: 'id'
-    }
+    field: 'student_id'
   },
   sessionStart: {
     type: DataTypes.DATE,
@@ -650,7 +583,7 @@ const SessionTracking = sequelize.define('SessionTracking', {
 });
 
 // ============================================================
-// STUDENT ACTIVITY MODEL
+// STUDENT ACTIVITY MODEL - FIXED WITH field MAPPINGS
 // ============================================================
 
 const StudentActivity = sequelize.define('StudentActivity', {
@@ -662,11 +595,7 @@ const StudentActivity = sequelize.define('StudentActivity', {
   studentId: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    field: 'student_id',
-    references: {
-      model: 'students',
-      key: 'id'
-    }
+    field: 'student_id'
   },
   activityType: {
     type: DataTypes.STRING(50),
@@ -675,23 +604,24 @@ const StudentActivity = sequelize.define('StudentActivity', {
   },
   activityData: {
     type: DataTypes.JSONB,
-    defaultValue: {}
+    defaultValue: {},
+    field: 'activity_data'        // ✅ FIXED
   },
   pageUrl: {
     type: DataTypes.TEXT,
-    field: 'page_url'
+    field: 'page_url'             // ✅ FIXED
   },
   ipAddress: {
     type: DataTypes.STRING(45),
-    field: 'ip_address'
+    field: 'ip_address'           // ✅ FIXED
   },
   userAgent: {
     type: DataTypes.TEXT,
-    field: 'user_agent'
+    field: 'user_agent'           // ✅ FIXED
   },
   sessionId: {
     type: DataTypes.STRING(255),
-    field: 'session_id'
+    field: 'session_id'           // ✅ FIXED
   },
   duration: {
     type: DataTypes.INTEGER,
@@ -706,61 +636,6 @@ const StudentActivity = sequelize.define('StudentActivity', {
   tableName: 'student_activities',
   timestamps: false
 });
-
-// ============================================================
-// ASSOCIATIONS (CRITICAL FOR SEQUELIZE TO LINK TABLES)
-// ============================================================
-
-// Student Associations
-Student.hasMany(Activity, { foreignKey: 'student_id' });
-Activity.belongsTo(Student, { foreignKey: 'student_id' });
-
-Student.hasMany(StudentActivity, { foreignKey: 'student_id' });
-StudentActivity.belongsTo(Student, { foreignKey: 'student_id' });
-
-Student.hasMany(LessonView, { foreignKey: 'student_id' });
-LessonView.belongsTo(Student, { foreignKey: 'student_id' });
-
-Student.hasMany(VideoTracking, { foreignKey: 'student_id' });
-VideoTracking.belongsTo(Student, { foreignKey: 'student_id' });
-
-Student.hasMany(FileTracking, { foreignKey: 'student_id' });
-FileTracking.belongsTo(Student, { foreignKey: 'student_id' });
-
-Student.hasMany(QuizAttempt, { foreignKey: 'student_id' });
-QuizAttempt.belongsTo(Student, { foreignKey: 'student_id' });
-
-Student.hasMany(MessageTracking, { foreignKey: 'student_id' });
-MessageTracking.belongsTo(Student, { foreignKey: 'student_id' });
-
-Student.hasMany(LinkClick, { foreignKey: 'student_id' });
-LinkClick.belongsTo(Student, { foreignKey: 'student_id' });
-
-Student.hasMany(SessionTracking, { foreignKey: 'student_id' });
-SessionTracking.belongsTo(Student, { foreignKey: 'student_id' });
-
-Student.hasMany(Booking, { foreignKey: 'student_email', sourceKey: 'email' });
-Booking.belongsTo(Student, { foreignKey: 'student_email', targetKey: 'email' });
-
-// Lesson Associations
-Lesson.hasMany(Quiz, { foreignKey: 'lesson_id' });
-Quiz.belongsTo(Lesson, { foreignKey: 'lesson_id' });
-
-Lesson.hasMany(LessonView, { foreignKey: 'lesson_id' });
-LessonView.belongsTo(Lesson, { foreignKey: 'lesson_id' });
-
-Lesson.hasMany(VideoTracking, { foreignKey: 'lesson_id' });
-VideoTracking.belongsTo(Lesson, { foreignKey: 'lesson_id' });
-
-Lesson.hasMany(FileTracking, { foreignKey: 'lesson_id' });
-FileTracking.belongsTo(Lesson, { foreignKey: 'lesson_id' });
-
-Lesson.hasMany(LinkClick, { foreignKey: 'lesson_id' });
-LinkClick.belongsTo(Lesson, { foreignKey: 'lesson_id' });
-
-// Teacher Associations
-Teacher.hasMany(MessageTracking, { foreignKey: 'teacher_id' });
-MessageTracking.belongsTo(Teacher, { foreignKey: 'teacher_id' });
 
 // ============================================================
 // EXPORT ALL MODELS
