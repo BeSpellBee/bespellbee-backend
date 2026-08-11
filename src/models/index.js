@@ -160,6 +160,55 @@ const Quiz = sequelize.define('Quiz', {
 });
 
 // ============================================================
+// ACTIVITY MODEL
+// ============================================================
+
+const Activity = sequelize.define('Activity', {
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true
+  },
+  studentId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    field: 'student_id',
+    references: {
+      model: 'students',
+      key: 'id'
+    }
+  },
+  lessonId: {
+    type: DataTypes.INTEGER,
+    field: 'lesson_id',
+    references: {
+      model: 'lessons',
+      key: 'id'
+    }
+  },
+  actionType: {
+    type: DataTypes.STRING(50),
+    allowNull: false,
+    field: 'action_type'
+  },
+  duration: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0
+  },
+  metadata: {
+    type: DataTypes.JSONB,
+    defaultValue: {}
+  },
+  timestamp: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW
+  }
+}, {
+  tableName: 'activities',
+  timestamps: false
+});
+
+// ============================================================
 // BOOKING MODEL
 // ============================================================
 
@@ -596,6 +645,64 @@ const SessionTracking = sequelize.define('SessionTracking', {
 });
 
 // ============================================================
+// STUDENT ACTIVITY MODEL (DEFINED HERE - FIXED!)
+// ============================================================
+
+const StudentActivity = sequelize.define('StudentActivity', {
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true
+  },
+  studentId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    field: 'student_id',
+    references: {
+      model: 'students',
+      key: 'id'
+    }
+  },
+  activityType: {
+    type: DataTypes.STRING(50),
+    allowNull: false,
+    field: 'activity_type'
+  },
+  activityData: {
+    type: DataTypes.JSONB,
+    defaultValue: {}
+  },
+  pageUrl: {
+    type: DataTypes.TEXT,
+    field: 'page_url'
+  },
+  ipAddress: {
+    type: DataTypes.STRING(45),
+    field: 'ip_address'
+  },
+  userAgent: {
+    type: DataTypes.TEXT,
+    field: 'user_agent'
+  },
+  sessionId: {
+    type: DataTypes.STRING(255),
+    field: 'session_id'
+  },
+  duration: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0
+  },
+  createdAt: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW,
+    field: 'created_at'
+  }
+}, {
+  tableName: 'student_activities',
+  timestamps: false
+});
+
+// ============================================================
 // EXPORT ALL MODELS
 // ============================================================
 
@@ -604,6 +711,7 @@ module.exports = {
   Student,
   Lesson,
   Quiz,
+  Activity,
   Booking,
   LessonView,
   VideoTracking,
@@ -612,5 +720,5 @@ module.exports = {
   MessageTracking,
   LinkClick,
   SessionTracking,
-  StudentActivity
+  StudentActivity  // ✅ NOW DEFINED ABOVE
 };
