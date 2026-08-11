@@ -140,6 +140,7 @@ const Quiz = sequelize.define('Quiz', {
   },
   lessonId: {
     type: DataTypes.INTEGER,
+    allowNull: true, // ✅ Made nullable
     field: 'lesson_id',
     references: {
       model: 'lessons',
@@ -180,6 +181,7 @@ const Activity = sequelize.define('Activity', {
   },
   lessonId: {
     type: DataTypes.INTEGER,
+    allowNull: true, // ✅ FIXED: Was causing errors on general page views
     field: 'lesson_id',
     references: {
       model: 'lessons',
@@ -352,6 +354,7 @@ const VideoTracking = sequelize.define('VideoTracking', {
   },
   lessonId: {
     type: DataTypes.INTEGER,
+    allowNull: true, // ✅ FIXED: Allow tracking without strict lesson ID if needed
     field: 'lesson_id',
     references: {
       model: 'lessons',
@@ -405,6 +408,7 @@ const FileTracking = sequelize.define('FileTracking', {
   },
   lessonId: {
     type: DataTypes.INTEGER,
+    allowNull: true, // ✅ FIXED
     field: 'lesson_id',
     references: {
       model: 'lessons',
@@ -563,6 +567,7 @@ const LinkClick = sequelize.define('LinkClick', {
   },
   lessonId: {
     type: DataTypes.INTEGER,
+    allowNull: true, // ✅ FIXED
     field: 'lesson_id',
     references: {
       model: 'lessons',
@@ -645,7 +650,7 @@ const SessionTracking = sequelize.define('SessionTracking', {
 });
 
 // ============================================================
-// STUDENT ACTIVITY MODEL (DEFINED HERE - FIXED!)
+// STUDENT ACTIVITY MODEL
 // ============================================================
 
 const StudentActivity = sequelize.define('StudentActivity', {
@@ -703,6 +708,61 @@ const StudentActivity = sequelize.define('StudentActivity', {
 });
 
 // ============================================================
+// ASSOCIATIONS (CRITICAL FOR SEQUELIZE TO LINK TABLES)
+// ============================================================
+
+// Student Associations
+Student.hasMany(Activity, { foreignKey: 'student_id' });
+Activity.belongsTo(Student, { foreignKey: 'student_id' });
+
+Student.hasMany(StudentActivity, { foreignKey: 'student_id' });
+StudentActivity.belongsTo(Student, { foreignKey: 'student_id' });
+
+Student.hasMany(LessonView, { foreignKey: 'student_id' });
+LessonView.belongsTo(Student, { foreignKey: 'student_id' });
+
+Student.hasMany(VideoTracking, { foreignKey: 'student_id' });
+VideoTracking.belongsTo(Student, { foreignKey: 'student_id' });
+
+Student.hasMany(FileTracking, { foreignKey: 'student_id' });
+FileTracking.belongsTo(Student, { foreignKey: 'student_id' });
+
+Student.hasMany(QuizAttempt, { foreignKey: 'student_id' });
+QuizAttempt.belongsTo(Student, { foreignKey: 'student_id' });
+
+Student.hasMany(MessageTracking, { foreignKey: 'student_id' });
+MessageTracking.belongsTo(Student, { foreignKey: 'student_id' });
+
+Student.hasMany(LinkClick, { foreignKey: 'student_id' });
+LinkClick.belongsTo(Student, { foreignKey: 'student_id' });
+
+Student.hasMany(SessionTracking, { foreignKey: 'student_id' });
+SessionTracking.belongsTo(Student, { foreignKey: 'student_id' });
+
+Student.hasMany(Booking, { foreignKey: 'student_email', sourceKey: 'email' });
+Booking.belongsTo(Student, { foreignKey: 'student_email', targetKey: 'email' });
+
+// Lesson Associations
+Lesson.hasMany(Quiz, { foreignKey: 'lesson_id' });
+Quiz.belongsTo(Lesson, { foreignKey: 'lesson_id' });
+
+Lesson.hasMany(LessonView, { foreignKey: 'lesson_id' });
+LessonView.belongsTo(Lesson, { foreignKey: 'lesson_id' });
+
+Lesson.hasMany(VideoTracking, { foreignKey: 'lesson_id' });
+VideoTracking.belongsTo(Lesson, { foreignKey: 'lesson_id' });
+
+Lesson.hasMany(FileTracking, { foreignKey: 'lesson_id' });
+FileTracking.belongsTo(Lesson, { foreignKey: 'lesson_id' });
+
+Lesson.hasMany(LinkClick, { foreignKey: 'lesson_id' });
+LinkClick.belongsTo(Lesson, { foreignKey: 'lesson_id' });
+
+// Teacher Associations
+Teacher.hasMany(MessageTracking, { foreignKey: 'teacher_id' });
+MessageTracking.belongsTo(Teacher, { foreignKey: 'teacher_id' });
+
+// ============================================================
 // EXPORT ALL MODELS
 // ============================================================
 
@@ -720,5 +780,5 @@ module.exports = {
   MessageTracking,
   LinkClick,
   SessionTracking,
-  StudentActivity  // ✅ NOW DEFINED ABOVE
+  StudentActivity
 };
