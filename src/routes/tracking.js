@@ -11,7 +11,8 @@ const {
   Student,
   Lesson,
   Teacher,
-  Booking
+  Booking,
+  StudentActivity  // ← ADD THIS
 } = require('../models');
 const { authenticate } = require('../middleware/auth');
 
@@ -63,16 +64,30 @@ router.post('/lesson-view', authenticate, async (req, res) => {
       });
     }
 
-    // Update lesson total views
     await Lesson.increment('views', { where: { id: lessonId } });
 
-    // Update student total time spent
     if (watchTime) {
       await Student.increment('totalTimeSpent', {
         by: watchTime,
         where: { id: studentId }
       });
     }
+
+    // ✅ SAVE TO student_activities
+    await StudentActivity.create({
+      studentId,
+      activityType: 'lesson_view',
+      activityData: {
+        lessonId,
+        watchTime: watchTime || 0,
+        isCompleted: isCompleted || false,
+        completionPercentage: completionPercentage || 0
+      },
+      sessionId: req.headers['x-session-id'] || req.sessionID,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+      duration: watchTime || 0
+    });
 
     return res.status(201).json({
       success: true,
@@ -115,11 +130,27 @@ router.post('/video', authenticate, async (req, res) => {
       timestamp: new Date()
     });
 
-    // Also update lesson view
     await LessonView.update(
       { totalWatchTime: watchTime || 0 },
       { where: { studentId, lessonId } }
     );
+
+    // ✅ SAVE TO student_activities
+    await StudentActivity.create({
+      studentId,
+      activityType: 'video_watch',
+      activityData: {
+        lessonId,
+        watchTime: watchTime || 0,
+        totalDuration: totalDuration || 0,
+        watchPercentage: watchPercentage || 0,
+        isCompleted: isCompleted || false
+      },
+      sessionId: req.headers['x-session-id'] || req.sessionID,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+      duration: watchTime || 0
+    });
 
     return res.status(201).json({
       success: true,
@@ -159,6 +190,20 @@ router.post('/file', authenticate, async (req, res) => {
       fileType: fileType || 'unknown',
       action,
       timestamp: new Date()
+    });
+
+    // ✅ SAVE TO student_activities
+    await StudentActivity.create({
+      studentId,
+      activityType: 'file_' + action,
+      activityData: {
+        fileName,
+        fileType: fileType || 'unknown',
+        lessonId: lessonId || null
+      },
+      sessionId: req.headers['x-session-id'] || req.sessionID,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent']
     });
 
     return res.status(201).json({
@@ -206,7 +251,26 @@ router.post('/quiz', authenticate, async (req, res) => {
       attemptDate: new Date()
     });
 
-    // Update student engagement score
+    // ✅ SAVE TO student_activities
+    await StudentActivity.create({
+      studentId,
+      activityType: 'quiz_attempt',
+      activityData: {
+        quizId,
+        quizTitle: req.body.quizTitle || 'Untitled Quiz',
+        score: score || 0,
+        totalQuestions: totalQuestions || 0,
+        correctAnswers: answers.filter(a => a.isCorrect).length,
+        wrongAnswers: totalQuestions - answers.filter(a => a.isCorrect).length,
+        timeTaken: timeSpent || 0,
+        isPassed: isPassed || false
+      },
+      sessionId: req.headers['x-session-id'] || req.sessionID,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+      duration: timeSpent || 0
+    });
+
     if (score > 0) {
       await Student.increment('engagementScore', {
         by: 1,
@@ -253,6 +317,20 @@ router.post('/message', authenticate, async (req, res) => {
       timestamp: new Date()
     });
 
+    // ✅ SAVE TO student_activities
+    await StudentActivity.create({
+      studentId,
+      activityType: 'message_sent',
+      activityData: {
+        teacherId,
+        messageLength: message.length,
+        preview: message.substring(0, 50)
+      },
+      sessionId: req.headers['x-session-id'] || req.sessionID,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent']
+    });
+
     return res.status(201).json({
       success: true,
       message: 'Message tracked',
@@ -291,6 +369,21 @@ router.post('/link-click', authenticate, async (req, res) => {
       linkText: linkText || null,
       linkType: linkType || 'external',
       timestamp: new Date()
+    });
+
+    // ✅ SAVE TO student_activities
+    await StudentActivity.create({
+      studentId,
+      activityType: 'link_click',
+      activityData: {
+        url,
+        linkText: linkText || null,
+        linkType: linkType || 'external',
+        lessonId: lessonId || null
+      },
+      sessionId: req.headers['x-session-id'] || req.sessionID,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent']
     });
 
     return res.status(201).json({
@@ -339,6 +432,24 @@ router.post('/session', authenticate, async (req, res) => {
       ipAddress: ipAddress || null
     });
 
+    // ✅ SAVE TO student_activities
+    await StudentActivity.create({
+      studentId,
+      activityType: 'session',
+      activityData: {
+        sessionStart,
+        sessionEnd,
+        sessionDuration,
+        pagesViewed: pagesViewed || 0,
+        deviceType: deviceType || 'unknown',
+        browser: browser || 'unknown'
+      },
+      sessionId: req.headers['x-session-id'] || req.sessionID,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+      duration: sessionDuration
+    });
+
     return res.status(201).json({
       success: true,
       message: 'Session tracked',
@@ -355,15 +466,35 @@ router.post('/session', authenticate, async (req, res) => {
 });
 
 // ============================================================
-// PAGE VIEW TRACKING (Simple version)
+// PAGE VIEW TRACKING (FIXED - NOW SAVES TO DATABASE)
 // ============================================================
 
 router.post('/page-view', authenticate, async (req, res) => {
   try {
-    const { page, url, duration, action } = req.body;
+    const { page, url, duration, action, teacher, subject } = req.body;
     const studentId = req.user.id;
 
-    // Just log it - we'll store in a simple way
+    // ✅ SAVE TO DATABASE
+    await StudentActivity.create({
+      studentId,
+      activityType: 'page_view',
+      activityData: {
+        page: page || 'unknown',
+        url: url || req.headers.referer || 'unknown',
+        action: action || 'view',
+        teacher: teacher || null,
+        subject: subject || null,
+        duration: duration || 0,
+        timestamp: new Date().toISOString()
+      },
+      pageUrl: url || req.headers.referer,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+      sessionId: req.headers['x-session-id'] || req.sessionID,
+      duration: duration || 0
+    });
+
+    // Log to console
     console.log(`📊 Page View: Student ${studentId} viewed ${page || 'unknown'}`);
 
     // Update engagement score
@@ -387,33 +518,39 @@ router.post('/page-view', authenticate, async (req, res) => {
 });
 
 // ============================================================
-// DASHBOARD (Simple version)
+// DASHBOARD
 // ============================================================
 
 router.get('/dashboard', authenticate, async (req, res) => {
   try {
     const studentId = req.user.id;
 
-    // Get student info
     const student = await Student.findByPk(studentId, {
       attributes: ['id', 'name', 'email', 'engagementScore', 'totalTimeSpent']
     });
 
-    // Get quiz attempts
     const quizAttempts = await QuizAttempt.findAll({
       where: { studentId },
       order: [['attemptDate', 'DESC']],
       limit: 20
     });
 
-    // Get messages
     const messages = await MessageTracking.findAll({
       where: { studentId },
       order: [['timestamp', 'DESC']],
       limit: 20
     });
 
-    // Calculate stats
+    // Get page views from student_activities
+    const pageViews = await StudentActivity.findAll({
+      where: { 
+        studentId,
+        activityType: 'page_view'
+      },
+      order: [['createdAt', 'DESC']],
+      limit: 20
+    });
+
     const totalQuizzes = quizAttempts.length;
     const avgScore = totalQuizzes > 0 
       ? quizAttempts.reduce((sum, q) => sum + parseFloat(q.score || 0), 0) / totalQuizzes 
@@ -434,11 +571,13 @@ router.get('/dashboard', authenticate, async (req, res) => {
           totalMessages,
           unreadMessages: messages.filter(m => !m.isRead).length,
           totalSessions: 0,
-          totalTimeSpent: student.totalTimeSpent || 0
+          totalTimeSpent: student.totalTimeSpent || 0,
+          totalPageViews: pageViews.length
         },
         recentActivity: {
           quizzes: quizAttempts.slice(0, 5),
-          messages: messages.slice(0, 5)
+          messages: messages.slice(0, 5),
+          pageViews: pageViews.slice(0, 5)
         }
       }
     });
