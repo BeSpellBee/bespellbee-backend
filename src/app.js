@@ -7,7 +7,7 @@ const authRoutes = require('./routes/auth');
 const analyticsRoutes = require('./routes/analytics');
 const trackingRoutes = require('./routes/tracking');
 
-// ===== CREATE THE APP FIRST =====
+// ===== CREATE THE APP =====
 const app = express();
 const PORT = process.env.PORT || 5000;
 
