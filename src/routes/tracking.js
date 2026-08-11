@@ -374,6 +374,8 @@ router.post('/page-view', authenticate, async (req, res) => {
         timestamp: new Date().toISOString()
       },
       pageUrl: url || req.headers.referer,
+      page: page || 'unknown',           // ✅ Store page directly
+      teacherName: teacher || null,      // ✅ Store teacher name directly
       ipAddress: req.ip,
       userAgent: req.headers['user-agent'],
       sessionId: req.headers['x-session-id'] || req.sessionID,
