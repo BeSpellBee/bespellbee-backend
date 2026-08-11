@@ -2,7 +2,15 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { Teacher, Student } = require('../models');  // ← Make sure Student is imported!
+const { Teacher, Student, StudentSession, StudentActivity } = require('../models');
+
+// ============================================================
+// HELPER FUNCTIONS
+// ============================================================
+
+function generateSessionId() {
+  return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+}
 
 // ============================================================
 // TEACHER ROUTES
@@ -109,13 +117,13 @@ router.post('/login', async (req, res) => {
 });
 
 // ============================================================
-// STUDENT ROUTES (ADD THESE BELOW)
+// STUDENT ROUTES
 // ============================================================
 
 // Register a new student
 router.post('/register-student', async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, phone } = req.body;
     
     // Check if student already exists
     const existingStudent = await Student.findOne({ where: { email } });
@@ -134,7 +142,10 @@ router.post('/register-student', async (req, res) => {
     const student = await Student.create({
       name,
       email,
-      passwordHash
+      passwordHash,
+      phone: phone || null,
+      engagementScore: 0,
+      totalTimeSpent: 0
     });
     
     // Generate token
@@ -144,6 +155,18 @@ router.post('/register-student', async (req, res) => {
       { expiresIn: '7d' }
     );
     
+    // Track signup activity
+    await StudentActivity.create({
+      studentId: student.id,
+      activityType: 'signup',
+      activityData: {
+        method: 'email',
+        timestamp: new Date().toISOString()
+      },
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent']
+    });
+    
     return res.status(201).json({
       success: true,
       message: 'Student registered successfully',
@@ -152,7 +175,8 @@ router.post('/register-student', async (req, res) => {
         name: student.name,
         email: student.email,
         role: 'student',
-        token
+        token,
+        engagementScore: 0
       }
     });
     
@@ -165,7 +189,7 @@ router.post('/register-student', async (req, res) => {
   }
 });
 
-// Student login
+// Student login (UPDATED with session tracking)
 router.post('/student-login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -186,14 +210,41 @@ router.post('/student-login', async (req, res) => {
       });
     }
     
+    // Update last login
     student.lastLogin = new Date();
     await student.save();
     
+    // Generate token
     const token = jwt.sign(
       { id: student.id, role: 'student' },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
+    
+    // ===== CREATE SESSION =====
+    const sessionToken = generateSessionId();
+    await StudentSession.create({
+      studentId: student.id,
+      sessionToken,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+      loginTime: new Date(),
+      isActive: true
+    });
+    
+    // ===== LOG ACTIVITY =====
+    await StudentActivity.create({
+      studentId: student.id,
+      activityType: 'login',
+      activityData: {
+        sessionToken,
+        ip: req.ip,
+        timestamp: new Date().toISOString()
+      },
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+      sessionId: sessionToken
+    });
     
     return res.status(200).json({
       success: true,
@@ -203,7 +254,9 @@ router.post('/student-login', async (req, res) => {
         name: student.name,
         email: student.email,
         role: 'student',
-        token
+        token,
+        sessionId: sessionToken,
+        engagementScore: student.engagementScore
       }
     });
     
@@ -212,6 +265,65 @@ router.post('/student-login', async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Server error during login'
+    });
+  }
+});
+
+// Student logout
+router.post('/student-logout', async (req, res) => {
+  try {
+    const { sessionId } = req.body;
+    const token = req.headers.authorization?.split(' ')[1];
+    
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: 'No token provided'
+      });
+    }
+    
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const studentId = decoded.id;
+    
+    // Find and update session
+    const session = await StudentSession.findOne({
+      where: { sessionToken: sessionId, studentId, isActive: true }
+    });
+    
+    if (session) {
+      const duration = Math.floor((new Date() - session.loginTime) / 1000);
+      await session.update({
+        logoutTime: new Date(),
+        sessionDuration: duration,
+        isActive: false
+      });
+      
+      // Log logout activity
+      await StudentActivity.create({
+        studentId,
+        activityType: 'logout',
+        activityData: {
+          sessionToken: sessionId,
+          duration,
+          timestamp: new Date().toISOString()
+        },
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+        sessionId: sessionId,
+        duration
+      });
+    }
+    
+    return res.status(200).json({
+      success: true,
+      message: 'Logged out successfully'
+    });
+    
+  } catch (error) {
+    console.error('Student logout error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error during logout'
     });
   }
 });
