@@ -1,55 +1,11 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
 
-// ===== STUDENT =====
-const Student = sequelize.define('Student', {
-  id: {
-    type: DataTypes.INTEGER,
-    primaryKey: true,
-    autoIncrement: true
-  },
-  name: {
-    type: DataTypes.STRING(100),
-    allowNull: false
-  },
-  email: {
-    type: DataTypes.STRING(100),
-    allowNull: false,
-    unique: true,
-    validate: {
-      isEmail: true
-    }
-  },
-  passwordHash: {
-    type: DataTypes.TEXT,
-    allowNull: false,
-    field: 'password_hash'
-  },
-  createdAt: {
-    type: DataTypes.DATE,
-    defaultValue: DataTypes.NOW,
-    field: 'created_at'
-  },
-  lastLogin: {
-    type: DataTypes.DATE,
-    field: 'last_login'
-  },
-  totalTimeSpent: {
-    type: DataTypes.INTEGER,
-    defaultValue: 0,
-    field: 'total_time_spent'
-  },
-  engagementScore: {
-    type: DataTypes.DECIMAL(5, 2),
-    defaultValue: 0,
-    field: 'engagement_score'
-  }
-}, {
-  tableName: 'students',
-  timestamps: false
-});
+// ============================================================
+// EXISTING MODELS (Preserved)
+// ============================================================
 
-// ===== TEACHER =====
+// Teacher model
 const Teacher = sequelize.define('Teacher', {
   id: {
     type: DataTypes.INTEGER,
@@ -73,10 +29,9 @@ const Teacher = sequelize.define('Teacher', {
     allowNull: false,
     field: 'password_hash'
   },
-  createdAt: {
+  lastLogin: {
     type: DataTypes.DATE,
-    defaultValue: DataTypes.NOW,
-    field: 'created_at'
+    field: 'last_login'
   },
   avgStudentProgress: {
     type: DataTypes.DECIMAL(5, 2),
@@ -88,64 +43,87 @@ const Teacher = sequelize.define('Teacher', {
   timestamps: false
 });
 
-// ===== LESSON =====
+// Student model
+const Student = sequelize.define('Student', {
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true
+  },
+  name: {
+    type: DataTypes.STRING(100),
+    allowNull: false
+  },
+  email: {
+    type: DataTypes.STRING(100),
+    allowNull: false,
+    unique: true,
+    validate: {
+      isEmail: true
+    }
+  },
+  passwordHash: {
+    type: DataTypes.TEXT,
+    allowNull: false,
+    field: 'password_hash'
+  },
+  phone: {
+    type: DataTypes.STRING(20),
+    allowNull: true
+  },
+  engagementScore: {
+    type: DataTypes.DECIMAL(5, 2),
+    defaultValue: 0,
+    field: 'engagement_score'
+  },
+  totalTimeSpent: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+    field: 'total_time_spent'
+  },
+  lastLogin: {
+    type: DataTypes.DATE,
+    field: 'last_login'
+  },
+  createdAt: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW,
+    field: 'created_at'
+  }
+}, {
+  tableName: 'students',
+  timestamps: false
+});
+
+// Lesson model
 const Lesson = sequelize.define('Lesson', {
   id: {
     type: DataTypes.INTEGER,
     primaryKey: true,
     autoIncrement: true
   },
-  teacherId: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    field: 'teacher_id',
-    references: {
-      model: 'teachers',
-      key: 'id'
-    }
-  },
   title: {
-    type: DataTypes.STRING(200),
+    type: DataTypes.STRING(255),
     allowNull: false
   },
   description: {
     type: DataTypes.TEXT
   },
-  videoUrl: {
-    type: DataTypes.STRING(500),
-    field: 'video_url'
-  },
-  fileUrl: {
-    type: DataTypes.STRING(500),
-    field: 'file_url'
-  },
-  duration: {
-    type: DataTypes.INTEGER,
-    defaultValue: 0
-  },
-  order: {
-    type: DataTypes.INTEGER
-  },
   views: {
     type: DataTypes.INTEGER,
     defaultValue: 0
   },
-  avgWatchTime: {
-    type: DataTypes.INTEGER,
-    defaultValue: 0,
-    field: 'avg_watch_time'
-  },
-  completionRate: {
-    type: DataTypes.DECIMAL(5, 2),
-    defaultValue: 0,
-    field: 'completion_rate'
+  createdAt: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW,
+    field: 'created_at'
   }
 }, {
   tableName: 'lessons',
   timestamps: false
 });
 
-// ===== QUIZ =====
+// Quiz model
 const Quiz = sequelize.define('Quiz', {
   id: {
     type: DataTypes.INTEGER,
@@ -154,7 +132,6 @@ const Quiz = sequelize.define('Quiz', {
   },
   lessonId: {
     type: DataTypes.INTEGER,
-    allowNull: false,
     field: 'lesson_id',
     references: {
       model: 'lessons',
@@ -165,25 +142,16 @@ const Quiz = sequelize.define('Quiz', {
     type: DataTypes.TEXT,
     allowNull: false
   },
-  options: {
-    type: DataTypes.JSONB,
-    allowNull: false
-  },
   correctAnswer: {
-    type: DataTypes.STRING(10),
-    allowNull: false,
+    type: DataTypes.STRING(50),
     field: 'correct_answer'
-  },
-  difficulty: {
-    type: DataTypes.INTEGER,
-    defaultValue: 1
   }
 }, {
   tableName: 'quizzes',
   timestamps: false
 });
 
-// ===== BOOKING =====
+// Booking model
 const Booking = sequelize.define('Booking', {
   id: {
     type: DataTypes.INTEGER,
@@ -201,13 +169,17 @@ const Booking = sequelize.define('Booking', {
     field: 'student_email'
   },
   studentPhone: {
-    type: DataTypes.STRING(50),
+    type: DataTypes.STRING(20),
     field: 'student_phone'
   },
   teacherName: {
     type: DataTypes.STRING(100),
     allowNull: false,
     field: 'teacher_name'
+  },
+  teacherSubject: {
+    type: DataTypes.STRING(100),
+    field: 'teacher_subject'
   },
   timeSlot: {
     type: DataTypes.STRING(50),
@@ -219,20 +191,28 @@ const Booking = sequelize.define('Booking', {
   },
   status: {
     type: DataTypes.STRING(20),
-    defaultValue: 'pending',
-    field: 'status'
+    defaultValue: 'pending'
   },
   createdAt: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW,
     field: 'created_at'
+  },
+  updatedAt: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW,
+    field: 'updated_at'
   }
 }, {
   tableName: 'bookings',
   timestamps: false
 });
 
-// ===== LESSON VIEW TRACKING =====
+// ============================================================
+// TRACKING MODELS (Enhanced)
+// ============================================================
+
+// Lesson View Tracking
 const LessonView = sequelize.define('LessonView', {
   id: {
     type: DataTypes.INTEGER,
@@ -259,8 +239,7 @@ const LessonView = sequelize.define('LessonView', {
   },
   viewCount: {
     type: DataTypes.INTEGER,
-    defaultValue: 1,
-    field: 'view_count'
+    defaultValue: 1
   },
   totalWatchTime: {
     type: DataTypes.INTEGER,
@@ -278,7 +257,7 @@ const LessonView = sequelize.define('LessonView', {
     field: 'is_completed'
   },
   completionPercentage: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.DECIMAL(5, 2),
     defaultValue: 0,
     field: 'completion_percentage'
   },
@@ -295,7 +274,7 @@ const LessonView = sequelize.define('LessonView', {
   timestamps: false
 });
 
-// ===== VIDEO TRACKING =====
+// Video Tracking
 const VideoTracking = sequelize.define('VideoTracking', {
   id: {
     type: DataTypes.INTEGER,
@@ -313,7 +292,6 @@ const VideoTracking = sequelize.define('VideoTracking', {
   },
   lessonId: {
     type: DataTypes.INTEGER,
-    allowNull: false,
     field: 'lesson_id',
     references: {
       model: 'lessons',
@@ -336,7 +314,7 @@ const VideoTracking = sequelize.define('VideoTracking', {
     field: 'is_completed'
   },
   watchPercentage: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.DECIMAL(5, 2),
     defaultValue: 0,
     field: 'watch_percentage'
   },
@@ -349,7 +327,7 @@ const VideoTracking = sequelize.define('VideoTracking', {
   timestamps: false
 });
 
-// ===== FILE TRACKING =====
+// File Tracking
 const FileTracking = sequelize.define('FileTracking', {
   id: {
     type: DataTypes.INTEGER,
@@ -367,7 +345,6 @@ const FileTracking = sequelize.define('FileTracking', {
   },
   lessonId: {
     type: DataTypes.INTEGER,
-    allowNull: false,
     field: 'lesson_id',
     references: {
       model: 'lessons',
@@ -375,18 +352,18 @@ const FileTracking = sequelize.define('FileTracking', {
     }
   },
   fileName: {
-    type: DataTypes.STRING(200),
+    type: DataTypes.STRING(255),
     allowNull: false,
     field: 'file_name'
   },
   fileType: {
     type: DataTypes.STRING(50),
+    defaultValue: 'unknown',
     field: 'file_type'
   },
   action: {
     type: DataTypes.STRING(20),
-    allowNull: false,
-    field: 'action' // 'view', 'download', 'preview'
+    allowNull: false
   },
   timestamp: {
     type: DataTypes.DATE,
@@ -397,7 +374,7 @@ const FileTracking = sequelize.define('FileTracking', {
   timestamps: false
 });
 
-// ===== QUIZ ATTEMPT =====
+// Quiz Attempt Tracking
 const QuizAttempt = sequelize.define('QuizAttempt', {
   id: {
     type: DataTypes.INTEGER,
@@ -414,31 +391,41 @@ const QuizAttempt = sequelize.define('QuizAttempt', {
     }
   },
   quizId: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.STRING(100),
     allowNull: false,
-    field: 'quiz_id',
-    references: {
-      model: 'quizzes',
-      key: 'id'
-    }
+    field: 'quiz_id'
+  },
+  quizTitle: {
+    type: DataTypes.STRING(255),
+    field: 'quiz_title'
   },
   answers: {
     type: DataTypes.JSONB,
-    allowNull: false
+    defaultValue: []
   },
   score: {
-    type: DataTypes.INTEGER,
-    allowNull: false
+    type: DataTypes.DECIMAL(5, 2),
+    defaultValue: 0
   },
   totalQuestions: {
     type: DataTypes.INTEGER,
-    allowNull: false,
+    defaultValue: 0,
     field: 'total_questions'
   },
-  timeSpent: {
+  correctAnswers: {
     type: DataTypes.INTEGER,
     defaultValue: 0,
-    field: 'time_spent'
+    field: 'correct_answers'
+  },
+  wrongAnswers: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+    field: 'wrong_answers'
+  },
+  timeTaken: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+    field: 'time_taken'
   },
   isPassed: {
     type: DataTypes.BOOLEAN,
@@ -455,7 +442,7 @@ const QuizAttempt = sequelize.define('QuizAttempt', {
   timestamps: false
 });
 
-// ===== MESSAGE TRACKING =====
+// Message Tracking
 const MessageTracking = sequelize.define('MessageTracking', {
   id: {
     type: DataTypes.INTEGER,
@@ -489,10 +476,6 @@ const MessageTracking = sequelize.define('MessageTracking', {
     defaultValue: false,
     field: 'is_read'
   },
-  readAt: {
-    type: DataTypes.DATE,
-    field: 'read_at'
-  },
   timestamp: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW
@@ -502,7 +485,7 @@ const MessageTracking = sequelize.define('MessageTracking', {
   timestamps: false
 });
 
-// ===== LINK CLICK TRACKING =====
+// Link Click Tracking
 const LinkClick = sequelize.define('LinkClick', {
   id: {
     type: DataTypes.INTEGER,
@@ -527,16 +510,17 @@ const LinkClick = sequelize.define('LinkClick', {
     }
   },
   url: {
-    type: DataTypes.STRING(500),
+    type: DataTypes.TEXT,
     allowNull: false
   },
   linkText: {
-    type: DataTypes.STRING(200),
+    type: DataTypes.STRING(255),
     field: 'link_text'
   },
   linkType: {
-    type: DataTypes.STRING(20),
-    field: 'link_type' // 'internal', 'external', 'resource'
+    type: DataTypes.STRING(50),
+    defaultValue: 'external',
+    field: 'link_type'
   },
   timestamp: {
     type: DataTypes.DATE,
@@ -547,7 +531,7 @@ const LinkClick = sequelize.define('LinkClick', {
   timestamps: false
 });
 
-// ===== SESSION TRACKING =====
+// Session Tracking
 const SessionTracking = sequelize.define('SessionTracking', {
   id: {
     type: DataTypes.INTEGER,
@@ -584,13 +568,15 @@ const SessionTracking = sequelize.define('SessionTracking', {
   },
   deviceType: {
     type: DataTypes.STRING(50),
+    defaultValue: 'unknown',
     field: 'device_type'
   },
   browser: {
-    type: DataTypes.STRING(50)
+    type: DataTypes.STRING(50),
+    defaultValue: 'unknown'
   },
   ipAddress: {
-    type: DataTypes.STRING(50),
+    type: DataTypes.STRING(45),
     field: 'ip_address'
   }
 }, {
@@ -598,50 +584,241 @@ const SessionTracking = sequelize.define('SessionTracking', {
   timestamps: false
 });
 
-// ===== RELATIONSHIPS =====
-Student.hasMany(LessonView, { foreignKey: 'studentId' });
-LessonView.belongsTo(Student, { foreignKey: 'studentId' });
+// ============================================================
+// NEW TRACKING MODELS
+// ============================================================
 
-Lesson.hasMany(LessonView, { foreignKey: 'lessonId' });
-LessonView.belongsTo(Lesson, { foreignKey: 'lessonId' });
+// Student Activity Log (Detailed tracking)
+const StudentActivity = sequelize.define('StudentActivity', {
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true
+  },
+  studentId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    field: 'student_id',
+    references: {
+      model: 'students',
+      key: 'id'
+    }
+  },
+  activityType: {
+    type: DataTypes.STRING(50),
+    allowNull: false,
+    field: 'activity_type'
+  },
+  activityData: {
+    type: DataTypes.JSONB,
+    defaultValue: {}
+  },
+  pageUrl: {
+    type: DataTypes.TEXT,
+    field: 'page_url'
+  },
+  ipAddress: {
+    type: DataTypes.STRING(45),
+    field: 'ip_address'
+  },
+  userAgent: {
+    type: DataTypes.TEXT,
+    field: 'user_agent'
+  },
+  sessionId: {
+    type: DataTypes.STRING(255),
+    field: 'session_id'
+  },
+  duration: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0
+  },
+  createdAt: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW,
+    field: 'created_at'
+  }
+}, {
+  tableName: 'student_activities',
+  timestamps: false
+});
 
-Student.hasMany(VideoTracking, { foreignKey: 'studentId' });
-VideoTracking.belongsTo(Student, { foreignKey: 'studentId' });
+// Student Sessions
+const StudentSession = sequelize.define('StudentSession', {
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true
+  },
+  studentId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    field: 'student_id',
+    references: {
+      model: 'students',
+      key: 'id'
+    }
+  },
+  sessionToken: {
+    type: DataTypes.STRING(255),
+    allowNull: false,
+    unique: true,
+    field: 'session_token'
+  },
+  ipAddress: {
+    type: DataTypes.STRING(45),
+    field: 'ip_address'
+  },
+  userAgent: {
+    type: DataTypes.TEXT,
+    field: 'user_agent'
+  },
+  loginTime: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW,
+    field: 'login_time'
+  },
+  logoutTime: {
+    type: DataTypes.DATE,
+    field: 'logout_time'
+  },
+  sessionDuration: {
+    type: DataTypes.INTEGER,
+    field: 'session_duration'
+  },
+  isActive: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true,
+    field: 'is_active'
+  }
+}, {
+  tableName: 'student_sessions',
+  timestamps: false
+});
 
-Student.hasMany(FileTracking, { foreignKey: 'studentId' });
-FileTracking.belongsTo(Student, { foreignKey: 'studentId' });
+// Messages Table
+const Message = sequelize.define('Message', {
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true
+  },
+  studentId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    field: 'student_id',
+    references: {
+      model: 'students',
+      key: 'id'
+    }
+  },
+  teacherId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    field: 'teacher_id',
+    references: {
+      model: 'teachers',
+      key: 'id'
+    }
+  },
+  content: {
+    type: DataTypes.TEXT,
+    allowNull: false
+  },
+  isRead: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+    field: 'is_read'
+  },
+  readAt: {
+    type: DataTypes.DATE,
+    field: 'read_at'
+  },
+  createdAt: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW,
+    field: 'created_at'
+  }
+}, {
+  tableName: 'messages',
+  timestamps: false
+});
 
-Student.hasMany(QuizAttempt, { foreignKey: 'studentId' });
-QuizAttempt.belongsTo(Student, { foreignKey: 'studentId' });
+// Video Progress (Enhanced)
+const VideoProgress = sequelize.define('VideoProgress', {
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true
+  },
+  studentId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    field: 'student_id',
+    references: {
+      model: 'students',
+      key: 'id'
+    }
+  },
+  videoId: {
+    type: DataTypes.STRING(100),
+    allowNull: false,
+    field: 'video_id'
+  },
+  videoTitle: {
+    type: DataTypes.STRING(255),
+    field: 'video_title'
+  },
+  watchedDuration: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+    field: 'watched_duration'
+  },
+  totalDuration: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+    field: 'total_duration'
+  },
+  completionPercentage: {
+    type: DataTypes.DECIMAL(5, 2),
+    defaultValue: 0,
+    field: 'completion_percentage'
+  },
+  lastPosition: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+    field: 'last_position'
+  },
+  completed: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+  },
+  startedAt: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW,
+    field: 'started_at'
+  },
+  completedAt: {
+    type: DataTypes.DATE,
+    field: 'completed_at'
+  },
+  updatedAt: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW,
+    field: 'updated_at'
+  }
+}, {
+  tableName: 'video_progress',
+  timestamps: false
+});
 
-Quiz.hasMany(QuizAttempt, { foreignKey: 'quizId' });
-QuizAttempt.belongsTo(Quiz, { foreignKey: 'quizId' });
+// ============================================================
+// EXPORT ALL MODELS
+// ============================================================
 
-Student.hasMany(MessageTracking, { foreignKey: 'studentId' });
-MessageTracking.belongsTo(Student, { foreignKey: 'studentId' });
-
-Teacher.hasMany(MessageTracking, { foreignKey: 'teacherId' });
-MessageTracking.belongsTo(Teacher, { foreignKey: 'teacherId' });
-
-Student.hasMany(LinkClick, { foreignKey: 'studentId' });
-LinkClick.belongsTo(Student, { foreignKey: 'studentId' });
-
-Student.hasMany(SessionTracking, { foreignKey: 'studentId' });
-SessionTracking.belongsTo(Student, { foreignKey: 'studentId' });
-
-Lesson.hasMany(LinkClick, { foreignKey: 'lessonId' });
-LinkClick.belongsTo(Lesson, { foreignKey: 'lessonId' });
-
-Teacher.hasMany(Lesson, { foreignKey: 'teacherId' });
-Lesson.belongsTo(Teacher, { foreignKey: 'teacherId' });
-
-Lesson.hasMany(Quiz, { foreignKey: 'lessonId' });
-Quiz.belongsTo(Lesson, { foreignKey: 'lessonId' });
-
-// ===== EXPORTS =====
 module.exports = {
-  Student,
   Teacher,
+  Student,
   Lesson,
   Quiz,
   Booking,
@@ -651,5 +828,9 @@ module.exports = {
   QuizAttempt,
   MessageTracking,
   LinkClick,
-  SessionTracking
+  SessionTracking,
+  StudentActivity,
+  StudentSession,
+  Message,
+  VideoProgress
 };
