@@ -5,7 +5,7 @@ require('dotenv').config();
 // Import routes
 const authRoutes = require('./routes/auth');
 const analyticsRoutes = require('./routes/analytics');
-
+const trackingRoutes = require('./routes/tracking');
 
 // ===== CREATE THE APP FIRST =====
 const app = express();
@@ -18,7 +18,8 @@ app.use(cors({
     'https://bespellbee.github.io/BeSpellBee',
     'https://bespellbee.github.io/BeSpellBee/',
     'http://localhost:3000',
-    'http://localhost:5173'
+    'http://localhost:5173',
+    'http://127.0.0.1:5500'
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true
@@ -50,7 +51,6 @@ app.use('/api/auth', authRoutes);
 app.use('/api/analytics', analyticsRoutes);
 
 // ===== TRACKING ROUTES =====
-const trackingRoutes = require('./routes/tracking');
 app.use('/api/track', trackingRoutes);
 
 // ===== BOOKING ROUTE =====
