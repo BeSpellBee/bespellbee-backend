@@ -12,7 +12,7 @@ const {
   Lesson,
   Teacher,
   Booking,
-  StudentActivity  // ← ADD THIS
+  StudentActivity  // ✅ IMPORTED CORRECTLY
 } = require('../models');
 const { authenticate } = require('../middleware/auth');
 
@@ -73,22 +73,6 @@ router.post('/lesson-view', authenticate, async (req, res) => {
       });
     }
 
-    // ✅ SAVE TO student_activities
-    await StudentActivity.create({
-      studentId,
-      activityType: 'lesson_view',
-      activityData: {
-        lessonId,
-        watchTime: watchTime || 0,
-        isCompleted: isCompleted || false,
-        completionPercentage: completionPercentage || 0
-      },
-      sessionId: req.headers['x-session-id'] || req.sessionID,
-      ipAddress: req.ip,
-      userAgent: req.headers['user-agent'],
-      duration: watchTime || 0
-    });
-
     return res.status(201).json({
       success: true,
       message: 'Lesson view tracked',
@@ -135,23 +119,6 @@ router.post('/video', authenticate, async (req, res) => {
       { where: { studentId, lessonId } }
     );
 
-    // ✅ SAVE TO student_activities
-    await StudentActivity.create({
-      studentId,
-      activityType: 'video_watch',
-      activityData: {
-        lessonId,
-        watchTime: watchTime || 0,
-        totalDuration: totalDuration || 0,
-        watchPercentage: watchPercentage || 0,
-        isCompleted: isCompleted || false
-      },
-      sessionId: req.headers['x-session-id'] || req.sessionID,
-      ipAddress: req.ip,
-      userAgent: req.headers['user-agent'],
-      duration: watchTime || 0
-    });
-
     return res.status(201).json({
       success: true,
       message: 'Video tracking saved',
@@ -190,20 +157,6 @@ router.post('/file', authenticate, async (req, res) => {
       fileType: fileType || 'unknown',
       action,
       timestamp: new Date()
-    });
-
-    // ✅ SAVE TO student_activities
-    await StudentActivity.create({
-      studentId,
-      activityType: 'file_' + action,
-      activityData: {
-        fileName,
-        fileType: fileType || 'unknown',
-        lessonId: lessonId || null
-      },
-      sessionId: req.headers['x-session-id'] || req.sessionID,
-      ipAddress: req.ip,
-      userAgent: req.headers['user-agent']
     });
 
     return res.status(201).json({
@@ -249,26 +202,6 @@ router.post('/quiz', authenticate, async (req, res) => {
       timeTaken: timeSpent || 0,
       isPassed: isPassed || false,
       attemptDate: new Date()
-    });
-
-    // ✅ SAVE TO student_activities
-    await StudentActivity.create({
-      studentId,
-      activityType: 'quiz_attempt',
-      activityData: {
-        quizId,
-        quizTitle: req.body.quizTitle || 'Untitled Quiz',
-        score: score || 0,
-        totalQuestions: totalQuestions || 0,
-        correctAnswers: answers.filter(a => a.isCorrect).length,
-        wrongAnswers: totalQuestions - answers.filter(a => a.isCorrect).length,
-        timeTaken: timeSpent || 0,
-        isPassed: isPassed || false
-      },
-      sessionId: req.headers['x-session-id'] || req.sessionID,
-      ipAddress: req.ip,
-      userAgent: req.headers['user-agent'],
-      duration: timeSpent || 0
     });
 
     if (score > 0) {
@@ -317,20 +250,6 @@ router.post('/message', authenticate, async (req, res) => {
       timestamp: new Date()
     });
 
-    // ✅ SAVE TO student_activities
-    await StudentActivity.create({
-      studentId,
-      activityType: 'message_sent',
-      activityData: {
-        teacherId,
-        messageLength: message.length,
-        preview: message.substring(0, 50)
-      },
-      sessionId: req.headers['x-session-id'] || req.sessionID,
-      ipAddress: req.ip,
-      userAgent: req.headers['user-agent']
-    });
-
     return res.status(201).json({
       success: true,
       message: 'Message tracked',
@@ -369,21 +288,6 @@ router.post('/link-click', authenticate, async (req, res) => {
       linkText: linkText || null,
       linkType: linkType || 'external',
       timestamp: new Date()
-    });
-
-    // ✅ SAVE TO student_activities
-    await StudentActivity.create({
-      studentId,
-      activityType: 'link_click',
-      activityData: {
-        url,
-        linkText: linkText || null,
-        linkType: linkType || 'external',
-        lessonId: lessonId || null
-      },
-      sessionId: req.headers['x-session-id'] || req.sessionID,
-      ipAddress: req.ip,
-      userAgent: req.headers['user-agent']
     });
 
     return res.status(201).json({
@@ -432,24 +336,6 @@ router.post('/session', authenticate, async (req, res) => {
       ipAddress: ipAddress || null
     });
 
-    // ✅ SAVE TO student_activities
-    await StudentActivity.create({
-      studentId,
-      activityType: 'session',
-      activityData: {
-        sessionStart,
-        sessionEnd,
-        sessionDuration,
-        pagesViewed: pagesViewed || 0,
-        deviceType: deviceType || 'unknown',
-        browser: browser || 'unknown'
-      },
-      sessionId: req.headers['x-session-id'] || req.sessionID,
-      ipAddress: req.ip,
-      userAgent: req.headers['user-agent'],
-      duration: sessionDuration
-    });
-
     return res.status(201).json({
       success: true,
       message: 'Session tracked',
@@ -474,7 +360,7 @@ router.post('/page-view', authenticate, async (req, res) => {
     const { page, url, duration, action, teacher, subject } = req.body;
     const studentId = req.user.id;
 
-    // ✅ SAVE TO DATABASE
+    // ✅ SAVE TO student_activities
     await StudentActivity.create({
       studentId,
       activityType: 'page_view',
@@ -494,10 +380,8 @@ router.post('/page-view', authenticate, async (req, res) => {
       duration: duration || 0
     });
 
-    // Log to console
     console.log(`📊 Page View: Student ${studentId} viewed ${page || 'unknown'}`);
 
-    // Update engagement score
     await Student.increment('engagementScore', {
       by: 0.1,
       where: { id: studentId }
@@ -541,7 +425,6 @@ router.get('/dashboard', authenticate, async (req, res) => {
       limit: 20
     });
 
-    // Get page views from student_activities
     const pageViews = await StudentActivity.findAll({
       where: { 
         studentId,
