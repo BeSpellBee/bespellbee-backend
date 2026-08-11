@@ -611,6 +611,10 @@ const StudentActivity = sequelize.define('StudentActivity', {
     type: DataTypes.TEXT,
     field: 'page_url'             // ✅ FIXED
   },
+    page: {
+    type: DataTypes.STRING(100),
+    field: 'page'               // NEW - store page name directly
+  },
   teacherName: {
     type: DataTypes.STRING(100),
     field: 'teacher_name'       // NEW - store teacher name directly
