@@ -12,7 +12,7 @@ const {
   Lesson,
   Teacher,
   Booking,
-  StudentActivity  // ✅ IMPORTED CORRECTLY
+  StudentActivity
 } = require('../models');
 const { authenticate } = require('../middleware/auth');
 
@@ -266,29 +266,46 @@ router.post('/message', authenticate, async (req, res) => {
 });
 
 // ============================================================
-// LINK CLICK TRACKING
+// DEDICATED LINK CLICK TRACKING (UPDATED)
 // ============================================================
 
 router.post('/link-click', authenticate, async (req, res) => {
   try {
-    const { lessonId, url, linkText, linkType } = req.body;
+    const { link, destination, duration } = req.body;  // ← NEW fields
     const studentId = req.user.id;
 
-    if (!url) {
+    if (!link) {
       return res.status(400).json({
         success: false,
-        message: 'url is required'
+        message: 'link is required'
       });
     }
 
+    // Save to link_clicks table
     const linkClick = await LinkClick.create({
       studentId,
-      lessonId: lessonId || null,
-      url,
-      linkText: linkText || null,
-      linkType: linkType || 'external',
+      lessonId: null,               // Not associated with a lesson
+      url: destination || null,
+      linkText: link,
+      linkType: 'navigation',       // ← You can change this if needed
       timestamp: new Date()
     });
+
+    // Also log to student_activities for dashboard consistency
+    await StudentActivity.create({
+      studentId,
+      activityType: 'link_click',
+      activityData: {
+        link: link,
+        destination: destination || null,
+        duration: duration || 0,
+        timestamp: new Date().toISOString()
+      },
+      page: req.headers.referer || document?.title || 'BeSpellBee',
+      duration: duration || 0
+    });
+
+    console.log(`🔗 Link Click: Student ${studentId} clicked "${link}" (${duration || 0}s)`);
 
     return res.status(201).json({
       success: true,
@@ -297,10 +314,11 @@ router.post('/link-click', authenticate, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Link click tracking error:', error);
+    console.error('❌ Link click tracking error:', error);
     return res.status(500).json({
       success: false,
-      message: 'Server error tracking link click'
+      message: 'Server error tracking link click',
+      error: error.message
     });
   }
 });
@@ -352,7 +370,7 @@ router.post('/session', authenticate, async (req, res) => {
 });
 
 // ============================================================
-// PAGE VIEW TRACKING (FIXED - NOW SAVES TO DATABASE)
+// PAGE VIEW TRACKING
 // ============================================================
 
 router.post('/page-view', authenticate, async (req, res) => {
@@ -370,7 +388,7 @@ router.post('/page-view', authenticate, async (req, res) => {
         teacher: teacher || null,
         subject: subject || null,
         duration: duration || 0,
-        link: link || null,           // ← ADD THIS
+        link: link || null,           // ← Store link if present
         timestamp: new Date().toISOString()
       },
       pageUrl: url || req.headers.referer,
@@ -413,7 +431,7 @@ router.post('/page-view', authenticate, async (req, res) => {
 });
 
 // ============================================================
-// DASHBOARD
+// DASHBOARD (UPDATED with link clicks)
 // ============================================================
 
 router.get('/dashboard', authenticate, async (req, res) => {
@@ -445,6 +463,12 @@ router.get('/dashboard', authenticate, async (req, res) => {
       limit: 20
     });
 
+    const linkClicks = await LinkClick.findAll({
+      where: { studentId },
+      order: [['timestamp', 'DESC']],
+      limit: 20
+    });
+
     const totalQuizzes = quizAttempts.length;
     const avgScore = totalQuizzes > 0 
       ? quizAttempts.reduce((sum, q) => sum + parseFloat(q.score || 0), 0) / totalQuizzes 
@@ -466,12 +490,14 @@ router.get('/dashboard', authenticate, async (req, res) => {
           unreadMessages: messages.filter(m => !m.isRead).length,
           totalSessions: 0,
           totalTimeSpent: student.totalTimeSpent || 0,
-          totalPageViews: pageViews.length
+          totalPageViews: pageViews.length,
+          totalLinkClicks: linkClicks.length
         },
         recentActivity: {
           quizzes: quizAttempts.slice(0, 5),
           messages: messages.slice(0, 5),
-          pageViews: pageViews.slice(0, 5)
+          pageViews: pageViews.slice(0, 5),
+          linkClicks: linkClicks.slice(0, 5)
         }
       }
     });
