@@ -269,6 +269,10 @@ router.post('/message', authenticate, async (req, res) => {
 // DEDICATED LINK CLICK TRACKING (UPDATED)
 // ============================================================
 
+// ============================================================
+// DEDICATED LINK CLICK TRACKING (UPDATED)
+// ============================================================
+
 router.post('/link-click', authenticate, async (req, res) => {
   try {
     const { link, destination, duration } = req.body;  // ← NEW fields
@@ -281,7 +285,7 @@ router.post('/link-click', authenticate, async (req, res) => {
       });
     }
 
-       const linkClick = await LinkClick.create({
+    const linkClick = await LinkClick.create({
       studentId,
       lessonId: null,
       // Use 'destination' if it exists, otherwise fallback to 'link'
@@ -297,11 +301,11 @@ router.post('/link-click', authenticate, async (req, res) => {
       activityType: 'link_click',
       activityData: {
         link: link,
-        url: destination || req.headers.referer || 'unknown-url', // ✅ Fixed
+        url: destination || req.headers.referer || 'unknown-url', 
         duration: duration || 0,
         timestamp: new Date().toISOString()
       },
-      page: req.headers.referer || document?.title || 'BeSpellBee',
+      page: req.headers.referer || 'BeSpellBee', 
       duration: duration || 0
     });
 
