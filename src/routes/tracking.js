@@ -273,32 +273,18 @@ router.post('/message', authenticate, async (req, res) => {
 // DEDICATED LINK CLICK TRACKING (UPDATED)
 // ============================================================
 
-const jwt = require('jsonwebtoken'); // Make sure this is at the top
-
-router.post('/link-click', async (req, res) => {
+router.post('/link-click', authenticate, async (req, res) => {
   try {
-    const { link, destination, duration, token, sessionId } = req.body;
+    const { link, destination, duration } = req.body;
+    const studentId = req.user.id;  // ✅ Uses authenticate middleware
 
-    // ✅ Try to get studentId from the token in the body (for sendBeacon)
-    let studentId = req.user?.id;
-
-    if (!studentId && token) {
-      try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        studentId = decoded.id;
-      } catch (jwtError) {
-        console.warn('⚠️ Invalid token from body');
-      }
-    }
-
-    if (!studentId) {
-      return res.status(401).json({
+    if (!link) {
+      return res.status(400).json({
         success: false,
-        message: 'Unauthorized'
+        message: 'link is required'
       });
     }
 
-    // Save to link_clicks table
     const linkClick = await LinkClick.create({
       studentId,
       lessonId: null,
@@ -308,7 +294,6 @@ router.post('/link-click', async (req, res) => {
       timestamp: new Date()
     });
 
-    // Also log to student_activities
     await StudentActivity.create({
       studentId,
       activityType: 'link_click',
