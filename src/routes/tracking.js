@@ -297,7 +297,7 @@ router.post('/link-click', authenticate, async (req, res) => {
       activityType: 'link_click',
       activityData: {
         link: link,
-        destination: destination || null,
+        url: destination || window.location.href,
         duration: duration || 0,
         timestamp: new Date().toISOString()
       },
