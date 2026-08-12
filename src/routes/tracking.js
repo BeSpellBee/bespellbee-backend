@@ -281,13 +281,13 @@ router.post('/link-click', authenticate, async (req, res) => {
       });
     }
 
-    // Save to link_clicks table
-    const linkClick = await LinkClick.create({
+       const linkClick = await LinkClick.create({
       studentId,
-      lessonId: null,               // Not associated with a lesson
-      url: destination || null,
+      lessonId: null,
+      // Use 'destination' if it exists, otherwise fallback to 'link'
+      url: destination || link, 
       linkText: link,
-      linkType: 'navigation',       // ← You can change this if needed
+      linkType: 'navigation',
       timestamp: new Date()
     });
 
