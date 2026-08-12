@@ -357,11 +357,10 @@ router.post('/session', authenticate, async (req, res) => {
 
 router.post('/page-view', authenticate, async (req, res) => {
   try {
-    const { page, url, duration, action, teacher, subject } = req.body;
+    const { page, url, duration, action, teacher, subject, link } = req.body;
     const studentId = req.user.id;
 
-    // ✅ SAVE TO student_activities
-    await StudentActivity.create({
+    const saved = await StudentActivity.create({
       studentId,
       activityType: 'page_view',
       activityData: {
@@ -371,34 +370,44 @@ router.post('/page-view', authenticate, async (req, res) => {
         teacher: teacher || null,
         subject: subject || null,
         duration: duration || 0,
+        link: link || null,           // ← ADD THIS
         timestamp: new Date().toISOString()
       },
       pageUrl: url || req.headers.referer,
-      page: page || 'unknown',           // ✅ Store page directly
-      teacherName: teacher || null,      // ✅ Store teacher name directly
+      page: page || 'unknown',
+      teacherName: teacher || null,
       ipAddress: req.ip,
       userAgent: req.headers['user-agent'],
       sessionId: req.headers['x-session-id'] || req.sessionID,
       duration: duration || 0
     });
 
-    console.log(`📊 Page View: Student ${studentId} viewed ${page || 'unknown'}`);
+    if (duration && duration > 0) {
+      await Student.increment('totalTimeSpent', {
+        by: duration,
+        where: { id: studentId }
+      });
+    }
 
     await Student.increment('engagementScore', {
       by: 0.1,
       where: { id: studentId }
     });
 
+    console.log(`✅ Page View: Student ${studentId} viewed ${page || 'unknown'} (${duration || 0}s)`);
+
     return res.status(201).json({
       success: true,
-      message: 'Page view tracked'
+      message: 'Page view tracked',
+      data: saved
     });
 
   } catch (error) {
-    console.error('Page view tracking error:', error);
+    console.error('❌ Page view tracking error:', error);
     return res.status(500).json({
       success: false,
-      message: 'Server error tracking page view'
+      message: 'Server error tracking page view',
+      error: error.message
     });
   }
 });
