@@ -273,39 +273,52 @@ router.post('/message', authenticate, async (req, res) => {
 // DEDICATED LINK CLICK TRACKING (UPDATED)
 // ============================================================
 
-router.post('/link-click', authenticate, async (req, res) => {
-  try {
-    const { link, destination, duration } = req.body;  // ← NEW fields
-    const studentId = req.user.id;
+const jwt = require('jsonwebtoken'); // Make sure this is at the top
 
-    if (!link) {
-      return res.status(400).json({
+router.post('/link-click', async (req, res) => {
+  try {
+    const { link, destination, duration, token, sessionId } = req.body;
+
+    // ✅ Try to get studentId from the token in the body (for sendBeacon)
+    let studentId = req.user?.id;
+
+    if (!studentId && token) {
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        studentId = decoded.id;
+      } catch (jwtError) {
+        console.warn('⚠️ Invalid token from body');
+      }
+    }
+
+    if (!studentId) {
+      return res.status(401).json({
         success: false,
-        message: 'link is required'
+        message: 'Unauthorized'
       });
     }
 
+    // Save to link_clicks table
     const linkClick = await LinkClick.create({
       studentId,
       lessonId: null,
-      // Use 'destination' if it exists, otherwise fallback to 'link'
-      url: destination || link, 
+      url: destination || null,
       linkText: link,
       linkType: 'navigation',
       timestamp: new Date()
     });
 
-    // Also log to student_activities for dashboard consistency
+    // Also log to student_activities
     await StudentActivity.create({
       studentId,
       activityType: 'link_click',
       activityData: {
         link: link,
-        url: destination || req.headers.referer || 'unknown-url', 
+        destination: destination || null,
         duration: duration || 0,
         timestamp: new Date().toISOString()
       },
-      page: req.headers.referer || 'BeSpellBee', 
+      page: req.headers.referer || document?.title || 'BeSpellBee',
       duration: duration || 0
     });
 
