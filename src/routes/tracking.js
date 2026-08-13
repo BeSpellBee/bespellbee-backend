@@ -276,7 +276,7 @@ router.post('/message', authenticate, async (req, res) => {
 router.post('/link-click', authenticate, async (req, res) => {
   try {
     const { link, destination, duration } = req.body;
-    const studentId = req.user.id;  // ✅ Uses authenticate middleware
+    const studentId = req.user.id;
 
     if (!link) {
       return res.status(400).json({
@@ -285,10 +285,13 @@ router.post('/link-click', authenticate, async (req, res) => {
       });
     }
 
+    // ✅ Use fallback if destination is missing
+    const url = destination || link || 'unknown';
+
     const linkClick = await LinkClick.create({
       studentId,
       lessonId: null,
-      url: destination || null,
+      url: url,                       // now never null
       linkText: link,
       linkType: 'navigation',
       timestamp: new Date()
@@ -303,7 +306,7 @@ router.post('/link-click', authenticate, async (req, res) => {
         duration: duration || 0,
         timestamp: new Date().toISOString()
       },
-      page: req.headers.referer || document?.title || 'BeSpellBee',
+      page: req.headers.referer || 'BeSpellBee',  // removed document reference
       duration: duration || 0
     });
 
