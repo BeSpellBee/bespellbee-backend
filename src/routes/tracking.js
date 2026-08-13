@@ -269,10 +269,6 @@ router.post('/message', authenticate, async (req, res) => {
 // DEDICATED LINK CLICK TRACKING (UPDATED)
 // ============================================================
 
-// ============================================================
-// DEDICATED LINK CLICK TRACKING (UPDATED)
-// ============================================================
-
 router.post('/link-click', authenticate, async (req, res) => {
   try {
     const { link, destination, duration } = req.body;
@@ -285,13 +281,13 @@ router.post('/link-click', authenticate, async (req, res) => {
       });
     }
 
-    // ✅ Use fallback if destination is missing
+    // ✅ FIX: use fallback if destination is missing
     const url = destination || link || 'unknown';
 
     const linkClick = await LinkClick.create({
       studentId,
       lessonId: null,
-      url: url,                       // now never null
+      url: url,              // now never null
       linkText: link,
       linkType: 'navigation',
       timestamp: new Date()
@@ -306,7 +302,7 @@ router.post('/link-click', authenticate, async (req, res) => {
         duration: duration || 0,
         timestamp: new Date().toISOString()
       },
-      page: req.headers.referer || 'BeSpellBee',  // removed document reference
+      page: req.headers.referer || 'BeSpellBee',   // ✅ removed document reference
       duration: duration || 0
     });
 
