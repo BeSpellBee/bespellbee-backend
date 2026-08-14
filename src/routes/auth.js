@@ -321,13 +321,15 @@ router.get('/teacher/dashboard', authenticate, async (req, res) => {
       }
     });
 
-  } catch (error) {
-    console.error('Teacher dashboard error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Server error loading dashboard'
-    });
-  }
+ } catch (error) {
+  console.error('❌ Teacher login error:', error);  // <-- this logs to Render
+  return res.status(500).json({
+    success: false,
+    message: 'Server error during login',
+    error: error.message,   // <-- send the actual error to frontend
+    stack: error.stack      // optional, but helpful
+  });
+}
 });
 
 module.exports = router;
