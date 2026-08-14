@@ -143,7 +143,7 @@ router.post('/teacher-login', async (req, res) => {
       });
     }
 
-    const teacher = await Teacher.findOne({ where: { email } });
+    const teacher = await Teacher.unscoped().findOne({ where: { email } });
 
     if (!teacher) {
       return res.status(401).json({
@@ -152,12 +152,12 @@ router.post('/teacher-login', async (req, res) => {
       });
     }
 
-    // if (!teacher.isActive) {
-//   return res.status(403).json({
-//     success: false,
-//     message: 'Your account has been deactivated. Please contact support.'
-//   });
-// }
+     if (!teacher.isActive) {
+   return res.status(403).json({
+     success: false,
+     message: 'Your account has been deactivated. Please contact support.'
+   });
+ }
 
     const isValidPassword = await bcrypt.compare(password, teacher.password);
 
