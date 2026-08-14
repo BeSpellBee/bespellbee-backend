@@ -29,23 +29,19 @@ module.exports = (sequelize, DataTypes) => {
     },
     isActive: {
       type: DataTypes.BOOLEAN,
-      defaultValue: true,
-      field: 'is_active'          // 👈 map to database column
+      defaultValue: true
     },
     lastLogin: {
       type: DataTypes.DATE,
-      allowNull: true,
-      field: 'last_login'         // 👈 map to database column
+      allowNull: true
     },
     createdAt: {
       type: DataTypes.DATE,
-      defaultValue: DataTypes.NOW,
-      field: 'created_at'         // 👈 map to database column
+      defaultValue: DataTypes.NOW
     },
     updatedAt: {
       type: DataTypes.DATE,
-      defaultValue: DataTypes.NOW,
-      field: 'updated_at'         // 👈 map to database column
+      defaultValue: DataTypes.NOW
     }
   }, {
     tableName: 'teachers',
