@@ -1,120 +1,130 @@
+
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { Teacher, Student } = require('../models');
+const { Teacher, Student, StudentActivity } = require('../models');
 
 // ============================================================
-// TEACHER ROUTES
+// TEACHER LOGIN (no registration – teachers are recruited by admin)
 // ============================================================
 
-// Register a new teacher
-router.post('/register-teacher', async (req, res) => {
+router.post('/teacher-login', async (req, res) => {
   try {
-    const { name, email, password } = req.body;
-    
-    // Check if teacher exists
-    const existingTeacher = await Teacher.findOne({ where: { email } });
-    if (existingTeacher) {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
       return res.status(400).json({
         success: false,
-        message: 'A teacher with this email already exists'
+        message: 'Email and password are required'
       });
     }
-    
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
-    const passwordHash = await bcrypt.hash(password, salt);
-    
-    // Create teacher
-    const teacher = await Teacher.create({
-      name,
-      email,
-      passwordHash
-    });
-    
+
+    // Find teacher
+    const teacher = await Teacher.findOne({ where: { email } });
+
+    if (!teacher) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid email or password'
+      });
+    }
+
+    // Check if teacher is active (optional, but recommended)
+    if (teacher.isActive === false) {
+      return res.status(403).json({
+        success: false,
+        message: 'Your account has been deactivated. Please contact support.'
+      });
+    }
+
+    // Verify password – using 'password' field (not 'passwordHash')
+    const isValidPassword = await bcrypt.compare(password, teacher.password);
+
+    if (!isValidPassword) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid email or password'
+      });
+    }
+
+    // Update last login
+    await teacher.update({ lastLogin: new Date() });
+
     // Generate JWT
     const token = jwt.sign(
-      { id: teacher.id, role: 'teacher' },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' }
-    );
-    
-    return res.status(201).json({
-      success: true,
-      message: 'Teacher registered successfully',
-      data: {
+      {
         id: teacher.id,
         name: teacher.name,
         email: teacher.email,
-        role: 'teacher',
-        token
-      }
-    });
-    
-  } catch (error) {
-    console.error('Teacher registration error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Server error during registration'
-    });
-  }
-});
-
-// Teacher login
-router.post('/login', async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    
-    // Find teacher
-    const user = await Teacher.findOne({ where: { email } });
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid email or password'
-      });
-    }
-    
-    // Check password
-    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
-    if (!isPasswordValid) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid email or password'
-      });
-    }
-    
-    // Update last login
-    user.lastLogin = new Date();
-    await user.save();
-    
-    // Generate JWT
-    const token = jwt.sign(
-      { id: user.id, role: 'teacher' },
-      process.env.JWT_SECRET,
+        role: 'teacher'
+      },
+      process.env.JWT_SECRET || 'your-secret-key-change-me',
       { expiresIn: '7d' }
     );
-    
+
+    // Track login activity (optional – for analytics)
+    await StudentActivity.create({
+      studentId: null,
+      teacherId: teacher.id,
+      activityType: 'teacher_login',
+      activityData: {
+        email: teacher.email,
+        ip: req.ip || req.headers['x-forwarded-for'] || 'unknown',
+        timestamp: new Date().toISOString()
+      }
+    });
+
     return res.status(200).json({
       success: true,
       message: 'Login successful',
       data: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
+        id: teacher.id,
+        name: teacher.name,
+        email: teacher.email,
+        subject: teacher.subject || null,
         role: 'teacher',
         token
       }
     });
-    
+
   } catch (error) {
-    console.error('Teacher login error:', error);
+    console.error('❌ Teacher login error:', error);
     return res.status(500).json({
       success: false,
-      message: 'Server error during login'
+      message: 'Server error during login',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
+
+// ============================================================
+// REMOVE OR DISABLE TEACHER REGISTRATION (for security)
+// ============================================================
+
+// If you need to add teachers manually, create a separate admin route
+// or run a script to insert teachers directly into the database.
+
+// Example script to add a teacher (run once via Node):
+/*
+const bcrypt = require('bcryptjs');
+const { Teacher } = require('./models');
+
+async function addTeacher() {
+  const password = await bcrypt.hash('your-password', 10);
+  await Teacher.create({
+    name: 'Teacher Name',
+    email: 'teacher@example.com',
+    password: password,
+    subject: 'English',
+    isActive: true
+  });
+  console.log('✅ Teacher added');
+}
+addTeacher();
+*/
+
+module.exports = router;
 
 // ============================================================
 // STUDENT ROUTES
