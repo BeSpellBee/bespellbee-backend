@@ -159,10 +159,14 @@ router.post('/teacher-login', async (req, res) => {
     // Debug: log to confirm password is loaded
     console.log('✅ Teacher found:', teacher.email);
     console.log('🔑 Password field present:', !!teacher.password);
-    console.log('🔍 Full teacher object:', teacher);
 
     // Check if account is active
-    
+    if (!teacher.isActive) {
+      return res.status(403).json({
+        success: false,
+        message: 'Your account has been deactivated. Please contact support.'
+      });
+    }
 
     // Verify password
     const isValidPassword = await bcrypt.compare(password, teacher.password);
