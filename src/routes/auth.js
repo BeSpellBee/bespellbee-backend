@@ -143,7 +143,11 @@ router.post('/teacher-login', async (req, res) => {
       });
     }
 
-    const teacher = await Teacher.unscoped().findOne({ where: { email } });
+    // ✅ Explicitly select ALL fields, including password and isActive
+    const teacher = await Teacher.findOne({
+      where: { email },
+      attributes: ['id', 'name', 'email', 'password', 'subject', 'bio', 'isActive', 'lastLogin', 'createdAt', 'updatedAt']
+    });
 
     if (!teacher) {
       return res.status(401).json({
@@ -152,13 +156,19 @@ router.post('/teacher-login', async (req, res) => {
       });
     }
 
-     // if (!teacher.isActive) {
-//   return res.status(403).json({
-//     success: false,
-//     message: 'Your account has been deactivated. Please contact support.'
-//   });
-// }
+    // Debug: log to confirm password is loaded
+    console.log('✅ Teacher found:', teacher.email);
+    console.log('🔑 Password field present:', !!teacher.password);
 
+    // Check if account is active
+    if (!teacher.isActive) {
+      return res.status(403).json({
+        success: false,
+        message: 'Your account has been deactivated. Please contact support.'
+      });
+    }
+
+    // Verify password
     const isValidPassword = await bcrypt.compare(password, teacher.password);
 
     if (!isValidPassword) {
@@ -168,8 +178,10 @@ router.post('/teacher-login', async (req, res) => {
       });
     }
 
+    // Update last login
     await teacher.update({ lastLogin: new Date() });
 
+    // Generate JWT
     const token = jwt.sign(
       {
         id: teacher.id,
@@ -180,18 +192,6 @@ router.post('/teacher-login', async (req, res) => {
       process.env.JWT_SECRET || 'your-secret-key-change-me',
       { expiresIn: '7d' }
     );
-
-    // Track login activity
-    await StudentActivity.create({
-      studentId: null,
-      teacherId: teacher.id,
-      activityType: 'teacher_login',
-      activityData: {
-        email: teacher.email,
-        ip: req.ip || req.headers['x-forwarded-for'] || 'unknown',
-        timestamp: new Date().toISOString()
-      }
-    });
 
     return res.status(200).json({
       success: true,
@@ -207,10 +207,11 @@ router.post('/teacher-login', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Teacher login error:', error);
+    console.error('❌ Teacher login error:', error);
     return res.status(500).json({
       success: false,
-      message: 'Server error during login'
+      message: 'Server error during login',
+      error: error.message
     });
   }
 });
