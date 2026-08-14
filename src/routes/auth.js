@@ -143,11 +143,14 @@ router.post('/teacher-login', async (req, res) => {
       });
     }
 
-    // ✅ Explicitly select ALL fields, including password and isActive
-    const teacher = await Teacher.findOne({
-      where: { email },
-      attributes: ['id', 'name', 'email', 'password', 'subject', 'bio', 'isActive', 'lastLogin', 'createdAt', 'updatedAt']
-    });
+    // ✅ RAW SQL – always returns ALL columns including password
+    const [teacher] = await sequelize.query(
+      `SELECT * FROM teachers WHERE email = :email`,
+      {
+        replacements: { email },
+        type: sequelize.QueryTypes.SELECT
+      }
+    );
 
     if (!teacher) {
       return res.status(401).json({
@@ -156,12 +159,17 @@ router.post('/teacher-login', async (req, res) => {
       });
     }
 
-    // Debug: log to confirm password is loaded
+    // Debug log
     console.log('✅ Teacher found:', teacher.email);
     console.log('🔑 Password field present:', !!teacher.password);
 
-    // Check if account is active
-    
+    // Check if account is active (if you want this feature)
+    // if (!teacher.isActive) {
+    //   return res.status(403).json({
+    //     success: false,
+    //     message: 'Your account has been deactivated. Please contact support.'
+    //   });
+    // }
 
     // Verify password
     const isValidPassword = await bcrypt.compare(password, teacher.password);
@@ -174,7 +182,10 @@ router.post('/teacher-login', async (req, res) => {
     }
 
     // Update last login
-    await teacher.update({ lastLogin: new Date() });
+    await sequelize.query(
+      `UPDATE teachers SET "lastLogin" = NOW() WHERE email = :email`,
+      { replacements: { email } }
+    );
 
     // Generate JWT
     const token = jwt.sign(
