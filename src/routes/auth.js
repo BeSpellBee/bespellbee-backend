@@ -161,12 +161,7 @@ router.post('/teacher-login', async (req, res) => {
     console.log('🔑 Password field present:', !!teacher.password);
 
     // Check if account is active
-    if (!teacher.isActive) {
-      return res.status(403).json({
-        success: false,
-        message: 'Your account has been deactivated. Please contact support.'
-      });
-    }
+    
 
     // Verify password
     const isValidPassword = await bcrypt.compare(password, teacher.password);
