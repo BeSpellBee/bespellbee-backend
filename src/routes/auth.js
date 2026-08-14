@@ -152,7 +152,7 @@ router.post('/teacher-login', async (req, res) => {
       });
     }
 
-    if (!teacher.isActive) {
+    if (!teacher.is_active) {
       return res.status(403).json({
         success: false,
         message: 'Your account has been deactivated. Please contact support.'
