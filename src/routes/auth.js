@@ -146,6 +146,7 @@ router.post('/teacher-login', async (req, res) => {
 
     // Fetch teacher without restricting attributes so all columns load automatically
     const teacher = await Teacher.findOne({ where: { email } });
+    console.log('🔍 SEQUELIZE RETURNED THIS OBJECT:', JSON.stringify(teacher, null, 2));
 
     if (!teacher) {
       return res.status(401).json({
