@@ -22,6 +22,11 @@ const { authenticate } = require('../middleware/auth');
 
 router.post('/lesson-view', authenticate, async (req, res) => {
   try {
+    // ✅ GUARD: Only students should be tracked
+    if (req.user.role !== 'student') {
+      return res.status(200).json({ success: true, message: 'Tracking ignored' });
+    }
+
     const { lessonId, watchTime, isCompleted, completionPercentage } = req.body;
     const studentId = req.user.id;
 
@@ -94,6 +99,11 @@ router.post('/lesson-view', authenticate, async (req, res) => {
 
 router.post('/video', authenticate, async (req, res) => {
   try {
+    // ✅ GUARD: Only students should be tracked
+    if (req.user.role !== 'student') {
+      return res.status(200).json({ success: true, message: 'Tracking ignored' });
+    }
+
     const { lessonId, watchTime, totalDuration, isCompleted, watchPercentage } = req.body;
     const studentId = req.user.id;
 
@@ -140,6 +150,11 @@ router.post('/video', authenticate, async (req, res) => {
 
 router.post('/file', authenticate, async (req, res) => {
   try {
+    // ✅ GUARD: Only students should be tracked
+    if (req.user.role !== 'student') {
+      return res.status(200).json({ success: true, message: 'Tracking ignored' });
+    }
+
     const { lessonId, fileName, fileType, action } = req.body;
     const studentId = req.user.id;
 
@@ -180,6 +195,11 @@ router.post('/file', authenticate, async (req, res) => {
 
 router.post('/quiz', authenticate, async (req, res) => {
   try {
+    // ✅ GUARD: Only students should be tracked
+    if (req.user.role !== 'student') {
+      return res.status(200).json({ success: true, message: 'Tracking ignored' });
+    }
+
     const { quizId, answers, score, totalQuestions, timeSpent, isPassed } = req.body;
     const studentId = req.user.id;
 
@@ -232,6 +252,11 @@ router.post('/quiz', authenticate, async (req, res) => {
 
 router.post('/message', authenticate, async (req, res) => {
   try {
+    // ✅ GUARD: Only students should be tracked
+    if (req.user.role !== 'student') {
+      return res.status(200).json({ success: true, message: 'Tracking ignored' });
+    }
+
     const { teacherId, message } = req.body;
     const studentId = req.user.id;
 
@@ -271,6 +296,11 @@ router.post('/message', authenticate, async (req, res) => {
 
 router.post('/link-click', authenticate, async (req, res) => {
   try {
+    // ✅ GUARD: Only students should be tracked
+    if (req.user.role !== 'student') {
+      return res.status(200).json({ success: true, message: 'Tracking ignored' });
+    }
+
     const { link, destination, duration } = req.body;
     const studentId = req.user.id;
 
@@ -330,6 +360,11 @@ router.post('/link-click', authenticate, async (req, res) => {
 
 router.post('/session', authenticate, async (req, res) => {
   try {
+    // ✅ GUARD: Only students should be tracked
+    if (req.user.role !== 'student') {
+      return res.status(200).json({ success: true, message: 'Tracking ignored' });
+    }
+
     const { sessionStart, sessionEnd, pagesViewed, deviceType, browser, ipAddress } = req.body;
     const studentId = req.user.id;
 
@@ -376,6 +411,11 @@ router.post('/session', authenticate, async (req, res) => {
 
 router.post('/page-view', authenticate, async (req, res) => {
   try {
+    // ✅ GUARD: Only students should be tracked
+    if (req.user.role !== 'student') {
+      return res.status(200).json({ success: true, message: 'Tracking ignored' });
+    }
+
     const { page, url, duration, action, teacher, subject, link } = req.body;
     const studentId = req.user.id;
 
@@ -437,11 +477,27 @@ router.post('/page-view', authenticate, async (req, res) => {
 
 router.get('/dashboard', authenticate, async (req, res) => {
   try {
+    // ✅ GUARD: Block non-students from student dashboard
+    if (req.user.role !== 'student') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Student dashboard only.'
+      });
+    }
+
     const studentId = req.user.id;
 
     const student = await Student.findByPk(studentId, {
       attributes: ['id', 'name', 'email', 'engagementScore', 'totalTimeSpent']
     });
+
+    // ✅ FIX: Prevent .toJSON() crash if student record is missing
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student record not found'
+      });
+    }
 
     const quizAttempts = await QuizAttempt.findAll({
       where: { studentId },
