@@ -155,15 +155,15 @@ router.post('/teacher-login', async (req, res) => {
     }
 
     // Access password hash (handles both password_hash and password field names gracefully)
-    //const hashToCompare = teacher.password_hash || teacher.password;
+    const hashToCompare = teacher.password_hash || teacher.password;
 
-    //if (!hashToCompare) {
-     // console.error('❌ Teacher record found but missing password hash in DB.');
-      //return res.status(500).json({
-       // success: false,
-       // message: 'Account authentication error'
-      //});
-    //}
+    if (!hashToCompare) {
+      console.error('❌ Teacher record found but missing password hash in DB.');
+      return res.status(500).json({
+        success: false,
+        message: 'Account authentication error'
+      });
+    }
 
     // Check account status
     if (teacher.isActive === false) {
