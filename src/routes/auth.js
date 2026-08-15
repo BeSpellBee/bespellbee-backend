@@ -156,7 +156,7 @@ router.post('/teacher-login', async (req, res) => {
     }
 
     // Access password hash (handles both password_hash and password field names gracefully)
-    const hashToCompare = teacher.password;
+    const hashToCompare = teacher.passwordHash;;
 
     if (!hashToCompare) {
       console.error('❌ Teacher record found but missing password hash in DB.');
