@@ -1,51 +1,41 @@
+const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
-const { Teacher } = require('./models');
+require('dotenv').config({ path: '../.env' });  // load .env from root
 
-async function setTeacherPassword() {
-  const email = 'arij@bespellbee.com';
-  const plainPassword = 'Password123!';
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
+});
 
+async function setPassword() {
   try {
-    console.log(`🔍 Locating teacher account: ${email}...`);
-    const teacher = await Teacher.findOne({ where: { email } });
+    const email = 'arij@bespellbee.com';
+    const plainPassword = 'Teacher123!';  // 👈 Change to your password
 
-    if (!teacher) {
-      console.error(`❌ Teacher with email "${email}" was not found in the database.`);
+    // Generate hash
+    const hash = await bcrypt.hash(plainPassword, 10);
+    console.log('📝 Generated hash:', hash);
+
+    // Update the teacher
+    const result = await pool.query(
+      'UPDATE teachers SET password = $1 WHERE email = $2 RETURNING id',
+      [hash, email]
+    );
+
+    if (result.rowCount === 0) {
+      console.error('❌ Teacher not found with email:', email);
       process.exit(1);
     }
 
-    console.log('✅ Teacher found!');
-    console.log('🔍 Available model fields:', Object.keys(teacher.toJSON()));
-
-    // Generate valid bcrypt hash
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(plainPassword, salt);
-
-    // Update whichever password field exists on your model
-    if ('password_hash' in teacher) {
-      teacher.password_hash = hashedPassword;
-    } else if ('password' in teacher) {
-      teacher.password = hashedPassword;
-    } else if ('passwordHash' in teacher) {
-      teacher.passwordHash = hashedPassword;
-    } else {
-      // Fallback: set password_hash directly
-      teacher.set('password_hash', hashedPassword);
-    }
-
-    await teacher.save();
-
-    console.log('====================================================');
-    console.log('🎉 SUCCESS: Password updated successfully!');
-    console.log(`📧 Email: ${email}`);
-    console.log(`🔑 New Password: ${plainPassword}`);
-    console.log('====================================================');
-
+    console.log(`✅ Password updated for ${email}`);
+    console.log(`🔑 New password: ${plainPassword}`);
+    await pool.end();
     process.exit(0);
   } catch (error) {
-    console.error('❌ Error setting teacher password:', error);
+    console.error('❌ Error:', error);
+    await pool.end();
     process.exit(1);
   }
 }
 
-setTeacherPassword();
+setPassword();
