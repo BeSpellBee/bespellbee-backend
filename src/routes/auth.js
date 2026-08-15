@@ -132,6 +132,7 @@ router.post('/student-login', async (req, res) => {
 // TEACHER LOGIN (no signup – recruited by admin)
 // ============================================================
 
+// Teacher login route
 router.post('/teacher-login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -143,10 +144,10 @@ router.post('/teacher-login', async (req, res) => {
       });
     }
 
-    // ✅ Explicitly select ALL fields, including password and isActive
+    // Explicitly query password_hash (or passwordHash)
     const teacher = await Teacher.findOne({
       where: { email },
-      attributes: ['id', 'name', 'email', 'password', 'subject', 'bio', 'isActive', 'lastLogin', 'createdAt', 'updatedAt']
+      attributes: ['id', 'name', 'email', 'password_hash', 'subject', 'bio', 'isActive', 'lastLogin']
     });
 
     if (!teacher) {
@@ -156,11 +157,12 @@ router.post('/teacher-login', async (req, res) => {
       });
     }
 
-    // Debug: log to confirm password is loaded
-    console.log('✅ Teacher found:', teacher.email);
-    console.log('🔑 Password field present:', !!teacher.password);
+    // Access the hash via teacher.password_hash or teacher.passwordHash
+    const hashToCompare = teacher.password_hash || teacher.passwordHash || teacher.password;
 
-    // Check if account is active
+    console.log('✅ Teacher found:', teacher.email);
+    console.log('🔑 Password hash present:', !!hashToCompare);
+
     if (!teacher.isActive) {
       return res.status(403).json({
         success: false,
@@ -168,8 +170,7 @@ router.post('/teacher-login', async (req, res) => {
       });
     }
 
-    // Verify password
-    const isValidPassword = await bcrypt.compare(password, teacher.password);
+    const isValidPassword = await bcrypt.compare(password, hashToCompare);
 
     if (!isValidPassword) {
       return res.status(401).json({
@@ -178,17 +179,10 @@ router.post('/teacher-login', async (req, res) => {
       });
     }
 
-    // Update last login
     await teacher.update({ lastLogin: new Date() });
 
-    // Generate JWT
     const token = jwt.sign(
-      {
-        id: teacher.id,
-        name: teacher.name,
-        email: teacher.email,
-        role: 'teacher'
-      },
+      { id: teacher.id, name: teacher.name, email: teacher.email, role: 'teacher' },
       process.env.JWT_SECRET || 'your-secret-key-change-me',
       { expiresIn: '7d' }
     );
