@@ -144,11 +144,8 @@ router.post('/teacher-login', async (req, res) => {
       });
     }
 
-    
-    const teacher = await Teacher.findOne({
-      where: { email },
-    
-    });
+    // Fetch teacher without restricting attributes so all columns load automatically
+    const teacher = await Teacher.findOne({ where: { email } });
 
     if (!teacher) {
       return res.status(401).json({
@@ -157,19 +154,26 @@ router.post('/teacher-login', async (req, res) => {
       });
     }
 
-    // Access the hash via teacher.password_hash or teacher.passwordHash
-    const hashToCompare = teacher.password_hash || teacher.passwordHash || teacher.password;
+    // Access password hash (handles both password_hash and password field names gracefully)
+    const hashToCompare = teacher.password_hash || teacher.password;
 
-    console.log('✅ Teacher found:', teacher.email);
-    console.log('🔑 Password hash present:', !!hashToCompare);
+    if (!hashToCompare) {
+      console.error('❌ Teacher record found but missing password hash in DB.');
+      return res.status(500).json({
+        success: false,
+        message: 'Account authentication error'
+      });
+    }
 
-    if (!teacher.isActive) {
+    // Check account status
+    if (teacher.isActive === false) {
       return res.status(403).json({
         success: false,
         message: 'Your account has been deactivated. Please contact support.'
       });
     }
 
+    // Verify password against hash
     const isValidPassword = await bcrypt.compare(password, hashToCompare);
 
     if (!isValidPassword) {
@@ -179,10 +183,17 @@ router.post('/teacher-login', async (req, res) => {
       });
     }
 
+    // Update last login
     await teacher.update({ lastLogin: new Date() });
 
+    // Generate JWT
     const token = jwt.sign(
-      { id: teacher.id, name: teacher.name, email: teacher.email, role: 'teacher' },
+      {
+        id: teacher.id,
+        name: teacher.name,
+        email: teacher.email,
+        role: 'teacher'
+      },
       process.env.JWT_SECRET || 'your-secret-key-change-me',
       { expiresIn: '7d' }
     );
