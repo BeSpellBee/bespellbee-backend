@@ -144,10 +144,10 @@ router.post('/teacher-login', async (req, res) => {
       });
     }
 
-    // Explicitly query password_hash (or passwordHash)
+    
     const teacher = await Teacher.findOne({
       where: { email },
-      attributes: ['id', 'name', 'email', 'password_hash', 'subject', 'bio', 'isActive', 'lastLogin']
+    
     });
 
     if (!teacher) {
