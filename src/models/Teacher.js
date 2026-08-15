@@ -15,9 +15,11 @@ module.exports = (sequelize, DataTypes) => {
       unique: true,
       validate: { isEmail: true }
     },
+    // Map JS `password` property to DB `password_hash` column
     password: {
       type: DataTypes.STRING(255),
-      allowNull: false
+      allowNull: false,
+      field: 'password_hash' 
     },
     subject: {
       type: DataTypes.STRING(100),
@@ -34,14 +36,6 @@ module.exports = (sequelize, DataTypes) => {
     lastLogin: {
       type: DataTypes.DATE,
       allowNull: true
-    },
-    createdAt: {
-      type: DataTypes.DATE,
-      defaultValue: DataTypes.NOW
-    },
-    updatedAt: {
-      type: DataTypes.DATE,
-      defaultValue: DataTypes.NOW
     }
   }, {
     tableName: 'teachers',
