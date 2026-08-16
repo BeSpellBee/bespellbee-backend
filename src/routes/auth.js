@@ -276,7 +276,7 @@ router.get('/teacher/dashboard', authenticate, async (req, res) => {
     const teacherId = req.user.id;
 
     const teacher = await Teacher.findByPk(teacherId, {
-      attributes: ['id', 'name', 'email', 'subject', 'bio']
+      attributes: ['id', 'name', 'email']
     });
 
     const bookings = await Booking.findAll({
