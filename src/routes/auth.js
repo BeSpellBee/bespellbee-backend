@@ -305,9 +305,7 @@ router.get('/teacher/dashboard', authenticate, async (req, res) => {
       group: ['studentId'],
       order: [[require('sequelize').literal('activityCount'), 'DESC']],
       limit: 10,
-      include: [
-        { model: Student, attributes: ['id', 'name', 'email'] }
-      ]
+     
     });
 
     return res.status(200).json({
