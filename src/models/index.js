@@ -1,9 +1,6 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
-const Teacher = require('./teacher')(sequelize, DataTypes);
-const Student = require('./student')(sequelize);
-const StudentActivity = require('./studentactivity')(sequelize, DataTypes);
-const Booking = require('./booking')(sequelize, DataTypes); // if you have one
+
 
 // ============================================================
 // TEACHER MODEL
