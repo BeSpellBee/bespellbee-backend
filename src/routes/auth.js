@@ -297,7 +297,7 @@ router.get('/teacher/dashboard', authenticate, async (req, res) => {
     const engagementStats = await StudentActivity.findAll({
       attributes: [
         'studentId',
-        [require('sequelize').fn('COUNT', require('sequelize').col('id')), 'activityCount']
+        [require('sequelize').fn('COUNT', require('sequelize').col('id')), '"activityCount"']
       ],
       where: {
         activityType: ['link_click', 'page_view', 'carousel_view']
