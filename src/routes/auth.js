@@ -291,9 +291,7 @@ router.get('/teacher/dashboard', authenticate, async (req, res) => {
       },
       order: [['createdAt', 'DESC']],
       limit: 30,
-      include: [
-        { model: Student, attributes: ['id', 'name', 'email'] }
-      ]
+      
     });
 
     const engagementStats = await StudentActivity.findAll({
