@@ -295,18 +295,18 @@ router.get('/teacher/dashboard', authenticate, async (req, res) => {
     });
 
     const engagementStats = await StudentActivity.findAll({
-      attributes: [
-        'studentId',
-        [require('sequelize').fn('COUNT', require('sequelize').col('id')), '"activityCount"']
-      ],
-      where: {
-        activityType: ['link_click', 'page_view', 'carousel_view']
-      },
-      group: ['studentId'],
-      order: [[require('sequelize').literal('activityCount'), 'DESC']],
-      limit: 10,
-     
-    });
+  attributes: [
+    'studentId',
+    [require('sequelize').fn('COUNT', require('sequelize').col('id')), 'activityCount']
+  ],
+  where: {
+    activityType: ['link_click', 'page_view', 'carousel_view']
+  },
+  group: ['studentId'],
+  order: [[require('sequelize').literal('"activityCount"'), 'DESC']],  // <-- QUOTES FIXED
+  limit: 10
+  // include is removed
+});
 
     return res.status(200).json({
       success: true,
