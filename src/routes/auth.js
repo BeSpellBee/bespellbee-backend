@@ -264,6 +264,14 @@ router.get('/profile', authenticate, async (req, res) => {
 // GET TEACHER DASHBOARD DATA
 // ============================================================
 
+// At the top of auth.js, ensure you have:
+const { Sequelize } = require('sequelize');
+const { Teacher, Student, StudentActivity, Booking } = require('../models');
+
+// ============================================================
+// TEACHER DASHBOARD (PERSONALISED)
+// ============================================================
+
 router.get('/teacher/dashboard', authenticate, async (req, res) => {
   try {
     if (req.user.role !== 'teacher') {
@@ -273,66 +281,106 @@ router.get('/teacher/dashboard', authenticate, async (req, res) => {
       });
     }
 
-    const teacherId = req.user.id;
+    const teacherId = req.user.id; // e.g., 3, 4, 5
 
+    // 1. Get teacher info – only columns that exist
     const teacher = await Teacher.findByPk(teacherId, {
       attributes: ['id', 'name', 'email']
     });
+    if (!teacher) {
+      return res.status(404).json({
+        success: false,
+        message: 'Teacher not found'
+      });
+    }
 
+    // 2. Get ALL students assigned to this teacher (using `teacherid`)
+    const students = await Student.findAll({
+      where: { teacherid: teacherId },   // raw column name from your DB
+      attributes: ['id', 'name', 'email']
+    });
+    const studentIds = students.map(s => s.id);
+
+    // 3. Bookings – still by teacher name (you can later migrate to teacherId)
     const bookings = await Booking.findAll({
       where: { teacherName: teacher.name },
       order: [['createdAt', 'DESC']],
       limit: 20
     });
 
+    // 4. Recent activities – filter by student IDs (covers all activity types)
     const recentActivity = await StudentActivity.findAll({
-  where: {
-    activityType: 'page_view',
-    'activityData.teacher': teacher.name   // Sequelize JSONB path filter (Postgres)
-  },
-  order: [['createdAt', 'DESC']],
-  limit: 30
-});
+      where: {
+        studentId: studentIds,
+        activityType: ['link_click', 'page_view', 'carousel_view']
+      },
+      order: [['createdAt', 'DESC']],
+      limit: 30,
+      // optional: include Student association if you need names
+      include: [{
+        model: Student,
+        attributes: ['name']   // only fetch name
+      }]
+    });
 
-const engagementStats = await StudentActivity.findAll({
-  attributes: [
-    'studentId',
-    [require('sequelize').fn('COUNT', require('sequelize').col('id')), 'activityCount']
-  ],
-  where: {
-    activityType: 'page_view',
-    'activityData.teacher': teacher.name
-  },
-  group: ['studentId'],
-  order: [[require('sequelize').literal('"activityCount"'), 'DESC']],
-  limit: 10
-});
+    // 5. Engagement stats – group by student
+    const engagementStats = await StudentActivity.findAll({
+      attributes: [
+        'studentId',
+        [Sequelize.fn('COUNT', Sequelize.col('id')), 'activityCount']
+      ],
+      where: {
+        studentId: studentIds,
+        activityType: ['link_click', 'page_view', 'carousel_view']
+      },
+      group: ['studentId'],
+      order: [[Sequelize.literal('"activityCount"'), 'DESC']],
+      limit: 10
+    });
+
+    // Fetch student names for the engagement list (if not eager-loaded)
+    const studentIdsWithCount = engagementStats.map(e => e.studentId);
+    const studentMap = {};
+    if (studentIdsWithCount.length) {
+      const studentList = await Student.findAll({
+        where: { id: studentIdsWithCount },
+        attributes: ['id', 'name']
+      });
+      studentList.forEach(s => { studentMap[s.id] = s.name; });
+    }
+
+    const enrichedEngagement = engagementStats.map(e => ({
+      ...e.toJSON(),
+      Student: { name: studentMap[e.studentId] || 'Unknown' }
+    }));
+
+    // 6. Stats
+    const stats = {
+      totalBookings: bookings.length,
+      pendingBookings: bookings.filter(b => b.status === 'pending').length,
+      totalStudents: students.length,
+      recentActivityCount: recentActivity.length
+    };
 
     return res.status(200).json({
       success: true,
       data: {
         teacher,
-        stats: {
-          totalBookings: bookings.length,
-          pendingBookings: bookings.filter(b => b.status === 'pending').length,
-          totalStudents: engagementStats.length,
-          recentActivityCount: recentActivity.length
-        },
+        stats,
         recentActivity,
-        engagementStats,
+        engagementStats: enrichedEngagement,
         bookings: bookings.slice(0, 10)
       }
     });
 
- } catch (error) {
-  console.error('❌ Teacher login error:', error);  // <-- this logs to Render
-  return res.status(500).json({
-    success: false,
-    message: 'Server error during login',
-    error: error.message,   // <-- send the actual error to frontend
-    stack: error.stack      // optional, but helpful
-  });
-}
+  } catch (error) {
+    console.error('❌ Teacher dashboard error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error fetching dashboard',
+      error: error.message
+    });
+  }
 });
 
 module.exports = router;
