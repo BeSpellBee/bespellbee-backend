@@ -1,4 +1,4 @@
-onst { Sequelize } = require('sequelize'); 
+const { Sequelize } = require('sequelize'); 
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
