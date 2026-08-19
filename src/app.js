@@ -1,5 +1,8 @@
 const express = require('express');
 const cors = require('cors');
+const http = require('http');                 // ✅ NEW
+const { Server } = require('socket.io');      // ✅ NEW
+const jwt = require('jsonwebtoken');          // ✅ NEW (to verify tokens)
 require('dotenv').config();
 
 // Import routes
@@ -129,13 +132,71 @@ app.get('/api/bookings', async (req, res) => {
   }
 });
 
-// ===== START SERVER =====
+// ============================================================
+// ✅ NEW – CREATE HTTP SERVER & ATTACH SOCKET.IO
+// ============================================================
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: [
+      'https://bespellbee.github.io',
+      'https://bespellbee.github.io/BeSpellBee',
+      'http://localhost:3000',
+      'http://localhost:5173',
+      'http://127.0.0.1:5500'
+    ],
+    methods: ['GET', 'POST']
+  }
+});
+
+// Make io available to route handlers
+app.set('io', io);
+
+// ============================================================
+// SOCKET.IO CONNECTION HANDLER
+// ============================================================
+io.on('connection', (socket) => {
+  console.log('📡 New client connected:', socket.id);
+
+  const token = socket.handshake.auth.token;
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key-change-me');
+      if (decoded.role === 'teacher') {
+        const teacherId = decoded.id;
+        socket.join(`teacher_${teacherId}`);
+        console.log(`👨‍🏫 Teacher ${teacherId} joined room`);
+      } else {
+        console.log('🔒 Non-teacher tried to connect');
+        socket.disconnect();
+      }
+    } catch (err) {
+      console.warn('⚠️ Invalid token for WebSocket');
+      socket.disconnect();
+    }
+  } else {
+    console.log('🔒 No token provided');
+    socket.disconnect();
+  }
+
+  socket.on('disconnect', () => {
+    console.log('📡 Client disconnected:', socket.id);
+  });
+});
+
+// ============================================================
+// DATABASE CONNECTION & SYNC (unchanged)
+// ============================================================
 const { sequelize } = require('./config/database');
 
-app.listen(PORT, async () => {
+// ============================================================
+// ✅ START SERVER – use server.listen, NOT app.listen
+// ============================================================
+server.listen(PORT, async () => {
   try {
     await sequelize.authenticate();
     console.log('✅ Database connected');
+    // Optional: sync to add missing columns (teacherid already added, but keep for safety)
     await sequelize.sync({ alter: true });
     console.log('✅ Database synced');
   } catch (error) {
