@@ -311,19 +311,20 @@ router.post('/link-click', authenticate, async (req, res) => {
       });
     }
 
-    // ✅ FIX: use fallback if destination is missing
     const url = destination || link || 'unknown';
 
+    // Create link click record
     const linkClick = await LinkClick.create({
       studentId,
       lessonId: null,
-      url: url,              // now never null
+      url: url,
       linkText: link,
       linkType: 'navigation',
       timestamp: new Date()
     });
 
-    await StudentActivity.create({
+    // ✅ STORE the created StudentActivity in `saved`
+    const saved = await StudentActivity.create({
       studentId,
       activityType: 'link_click',
       activityData: {
@@ -332,33 +333,42 @@ router.post('/link-click', authenticate, async (req, res) => {
         duration: duration || 0,
         timestamp: new Date().toISOString()
       },
-      page: req.headers.referer || 'BeSpellBee',   // ✅ removed document reference
+      page: req.headers.referer || 'BeSpellBee',
       duration: duration || 0
     });
 
     console.log(`🔗 Link Click: Student ${studentId} clicked "${link}" (${duration || 0}s)`);
+
+    // ============================================================
+    // ✅ BROADCAST TO TEACHER (MOVED BEFORE RETURN)
+    // ============================================================
+    const student = await Student.findByPk(req.user.id, {
+      attributes: ['teacherid', 'name']
+    });
+
+    if (student && student.teacherid) {
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`teacher_${student.teacherid}`).emit('new-activity', {
+          id: saved.id,
+          activityType: saved.activityType,
+          activityData: saved.activityData,
+          studentName: student.name || 'Student',
+          createdAt: saved.createdAt
+        });
+        console.log(`📡 Broadcasted to teacher ${student.teacherid}`);
+      } else {
+        console.error('❌ io instance is undefined – did you set app.set("io", io)?');
+      }
+    } else {
+      console.warn(`⚠️ Student ${studentId} has no teacherid – skipping broadcast`);
+    }
 
     return res.status(201).json({
       success: true,
       message: 'Link click tracked',
       data: linkClick
     });
-    // ... after saving the activity (saved variable)
-const student = await Student.findByPk(req.user.id, {
-    attributes: ['teacherid', 'name']
-});
-
-if (student && student.teacherid) {
-    const io = req.app.get('io');
-    io.to(`teacher_${student.teacherid}`).emit('new-activity', {
-        id: saved.id,
-        activityType: saved.activityType,
-        activityData: saved.activityData, // Sequelize returns JSONB as object
-        studentName: student.name || 'Student',
-        createdAt: saved.createdAt
-    });
-    console.log(`📡 Broadcasted to teacher ${student.teacherid}`);
-}
 
   } catch (error) {
     console.error('❌ Link click tracking error:', error);
