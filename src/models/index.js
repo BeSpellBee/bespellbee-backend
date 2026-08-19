@@ -84,6 +84,14 @@ const Student = sequelize.define('Student', {
     defaultValue: 0,
     field: 'total_time_spent'
   },
+  teacherid: {
+      type: DataTypes.INTEGER,
+      allowNull: true,          // true for now – assign students later
+      references: {
+        model: 'teachers',
+        key: 'id'
+      }
+  },
   lastLogin: {
     type: DataTypes.DATE,
     field: 'last_login'
