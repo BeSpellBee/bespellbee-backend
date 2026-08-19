@@ -264,9 +264,7 @@ router.get('/profile', authenticate, async (req, res) => {
 // GET TEACHER DASHBOARD DATA
 // ============================================================
 
-// At the top of auth.js, ensure you have:
-const { Sequelize } = require('sequelize');
-const { Teacher, Student, StudentActivity, Booking } = require('../models');
+
 
 // ============================================================
 // TEACHER DASHBOARD (PERSONALISED)
