@@ -343,6 +343,22 @@ router.post('/link-click', authenticate, async (req, res) => {
       message: 'Link click tracked',
       data: linkClick
     });
+    // ... after saving the activity (saved variable)
+const student = await Student.findByPk(req.user.id, {
+    attributes: ['teacherid', 'name']
+});
+
+if (student && student.teacherid) {
+    const io = req.app.get('io');
+    io.to(`teacher_${student.teacherid}`).emit('new-activity', {
+        id: saved.id,
+        activityType: saved.activityType,
+        activityData: saved.activityData, // Sequelize returns JSONB as object
+        studentName: student.name || 'Student',
+        createdAt: saved.createdAt
+    });
+    console.log(`📡 Broadcasted to teacher ${student.teacherid}`);
+}
 
   } catch (error) {
     console.error('❌ Link click tracking error:', error);
