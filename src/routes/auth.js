@@ -279,9 +279,9 @@ router.get('/teacher/dashboard', authenticate, async (req, res) => {
       });
     }
 
-    const teacherId = req.user.id; // e.g., 3, 4, 5
+    const teacherId = req.user.id;
 
-    // 1. Get teacher info – only columns that exist
+    // 1. Teacher info
     const teacher = await Teacher.findByPk(teacherId, {
       attributes: ['id', 'name', 'email']
     });
@@ -292,36 +292,47 @@ router.get('/teacher/dashboard', authenticate, async (req, res) => {
       });
     }
 
-    // 2. Get ALL students assigned to this teacher (using `teacherid`)
+    // 2. Students assigned to this teacher
     const students = await Student.findAll({
-      where: { teacherid: teacherId },   // raw column name from your DB
+      where: { teacherid: teacherId },
       attributes: ['id', 'name', 'email']
     });
     const studentIds = students.map(s => s.id);
 
-    // 3. Bookings – still by teacher name (you can later migrate to teacherId)
+    // 3. Bookings
     const bookings = await Booking.findAll({
       where: { teacherName: teacher.name },
       order: [['createdAt', 'DESC']],
       limit: 20
     });
 
-    // 4. Recent activities – filter by student IDs (covers all activity types)
+    // 4. Recent activities (no include)
     const recentActivity = await StudentActivity.findAll({
       where: {
         studentId: studentIds,
         activityType: ['link_click', 'page_view', 'carousel_view']
       },
       order: [['createdAt', 'DESC']],
-      limit: 30,
-      // optional: include Student association if you need names
-      include: [{
-        model: Student,
-        attributes: ['name']   // only fetch name
-      }]
+      limit: 30
     });
 
-    // 5. Engagement stats – group by student
+    // Fetch student names for recent activities
+    const recentStudentIds = [...new Set(recentActivity.map(a => a.studentId))];
+    const studentNameMap = {};
+    if (recentStudentIds.length) {
+      const studentList = await Student.findAll({
+        where: { id: recentStudentIds },
+        attributes: ['id', 'name']
+      });
+      studentList.forEach(s => { studentNameMap[s.id] = s.name; });
+    }
+
+    const recentActivityWithNames = recentActivity.map(activity => ({
+      ...activity.toJSON(),
+      Student: { name: studentNameMap[activity.studentId] || 'Unknown' }
+    }));
+
+    // 5. Engagement stats
     const engagementStats = await StudentActivity.findAll({
       attributes: [
         'studentId',
@@ -336,7 +347,6 @@ router.get('/teacher/dashboard', authenticate, async (req, res) => {
       limit: 10
     });
 
-    // Fetch student names for the engagement list (if not eager-loaded)
     const studentIdsWithCount = engagementStats.map(e => e.studentId);
     const studentMap = {};
     if (studentIdsWithCount.length) {
@@ -352,7 +362,6 @@ router.get('/teacher/dashboard', authenticate, async (req, res) => {
       Student: { name: studentMap[e.studentId] || 'Unknown' }
     }));
 
-    // 6. Stats
     const stats = {
       totalBookings: bookings.length,
       pendingBookings: bookings.filter(b => b.status === 'pending').length,
@@ -365,7 +374,7 @@ router.get('/teacher/dashboard', authenticate, async (req, res) => {
       data: {
         teacher,
         stats,
-        recentActivity,
+        recentActivity: recentActivityWithNames,
         engagementStats: enrichedEngagement,
         bookings: bookings.slice(0, 10)
       }
