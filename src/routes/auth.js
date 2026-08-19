@@ -286,26 +286,26 @@ router.get('/teacher/dashboard', authenticate, async (req, res) => {
     });
 
     const recentActivity = await StudentActivity.findAll({
-      where: {
-        activityType: ['link_click', 'page_view', 'carousel_view']
-      },
-      order: [['createdAt', 'DESC']],
-      limit: 30,
-      
-    });
+  where: {
+    activityType: 'page_view',
+    'activityData.teacher': teacher.name   // Sequelize JSONB path filter (Postgres)
+  },
+  order: [['createdAt', 'DESC']],
+  limit: 30
+});
 
-    const engagementStats = await StudentActivity.findAll({
+const engagementStats = await StudentActivity.findAll({
   attributes: [
     'studentId',
     [require('sequelize').fn('COUNT', require('sequelize').col('id')), 'activityCount']
   ],
   where: {
-    activityType: ['link_click', 'page_view', 'carousel_view']
+    activityType: 'page_view',
+    'activityData.teacher': teacher.name
   },
   group: ['studentId'],
-  order: [[require('sequelize').literal('"activityCount"'), 'DESC']],  // <-- QUOTES FIXED
+  order: [[require('sequelize').literal('"activityCount"'), 'DESC']],
   limit: 10
-  // include is removed
 });
 
     return res.status(200).json({
